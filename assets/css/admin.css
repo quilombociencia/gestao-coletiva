@@ -1,0 +1,334 @@
+/* Gestão Coletiva - Admin Styles */
+
+/* Dashboard */
+.gc-dashboard {
+    max-width: 1200px;
+}
+
+.gc-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.gc-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    flex: 1;
+    min-width: 300px;
+}
+
+.gc-banner-contribuir {
+    background: linear-gradient(135deg, #0073aa 0%, #005a87 100%);
+    color: #fff;
+    text-align: center;
+    min-width: 400px;
+}
+
+.gc-banner-contribuir h2 {
+    color: #fff;
+    margin-top: 0;
+}
+
+.gc-banner-contribuir .button {
+    margin-top: 15px;
+}
+
+.gc-balanco-mes h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.gc-balanco-valores {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gc-balanco-valores > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gc-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.gc-valor {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.gc-valor.gc-positivo {
+    color: #46b450;
+}
+
+.gc-valor.gc-negativo {
+    color: #dc3232;
+}
+
+/* Ações rápidas */
+.gc-acoes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.gc-acao {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    padding: 20px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+    transition: all 0.3s ease;
+    color: #333;
+}
+
+.gc-acao:hover {
+    border-color: #0073aa;
+    background: #fff;
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.gc-acao .dashicons {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+/* Estados e badges */
+.gc-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gc-estado-previsto {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.gc-estado-efetivado {
+    background: #d4edda;
+    color: #155724;
+}
+
+.gc-estado-cancelado,
+.gc-estado-expirado {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.gc-estado-em_contestacao,
+.gc-estado-em_disputa {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.gc-estado-contestado {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.gc-estado-confirmado,
+.gc-estado-aceito {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Tipos */
+.gc-tipo-receita {
+    color: #46b450;
+    font-weight: bold;
+}
+
+.gc-tipo-despesa {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+/* Tabelas */
+.gc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.gc-table th,
+.gc-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.gc-table th {
+    background: #f1f1f1;
+    font-weight: 600;
+}
+
+.gc-table tr:hover {
+    background: #f9f9f9;
+}
+
+/* Filtros */
+.gc-filtros {
+    background: #f1f1f1;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.gc-filtros-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.gc-filtros-form select,
+.gc-filtros-form input {
+    min-width: 120px;
+}
+
+/* Empty state */
+.gc-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.gc-empty-state h3 {
+    margin-bottom: 10px;
+    color: #555;
+}
+
+/* Prazos */
+.gc-prazo {
+    font-weight: bold;
+}
+
+.gc-prazo-vencido {
+    color: #dc3232;
+}
+
+.gc-prazo-finalizado {
+    color: #666;
+}
+
+/* Status do sistema */
+.gc-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.gc-status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.gc-status-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.gc-status-valor {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Lançamentos */
+.gc-lancamentos-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gc-contestacao-item,
+.gc-lancamento-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+/* Relatórios */
+.gc-relatorios-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.gc-relatorio-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    background: #fff;
+}
+
+.gc-relatorio-info h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.gc-relatorio-acoes {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+/* Configurações */
+.gc-form-inline {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .gc-row {
+        flex-direction: column;
+    }
+    
+    .gc-balanco-valores {
+        font-size: 14px;
+    }
+    
+    .gc-acoes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .gc-filtros-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .gc-filtros-form > * {
+        width: 100%;
+    }
+}

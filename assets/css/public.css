@@ -1,0 +1,687 @@
+/* Gestão Coletiva - Public Styles */
+
+/* Container principal */
+.gc-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Botões */
+.gc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    line-height: 1.4;
+}
+
+.gc-btn-primary {
+    background: #0073aa;
+    color: #fff;
+}
+
+.gc-btn-primary:hover {
+    background: #005a87;
+    color: #fff;
+    text-decoration: none;
+}
+
+.gc-btn-secondary {
+    background: #6c757d;
+    color: #fff;
+}
+
+.gc-btn-secondary:hover {
+    background: #545b62;
+    color: #fff;
+    text-decoration: none;
+}
+
+.gc-btn-outline {
+    background: transparent;
+    color: #0073aa;
+    border: 2px solid #0073aa;
+}
+
+.gc-btn-outline:hover {
+    background: #0073aa;
+    color: #fff;
+    text-decoration: none;
+}
+
+.gc-btn-small {
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+.gc-btn-large {
+    padding: 16px 24px;
+    font-size: 16px;
+}
+
+.gc-icon {
+    font-size: 18px;
+}
+
+/* Cards */
+.gc-card {
+    background: #fff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+/* Banner de contribuição */
+.gc-banner-contribuir {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    text-align: center;
+    border: none;
+    margin-bottom: 30px;
+}
+
+.gc-banner-contribuir h2 {
+    color: #fff;
+    margin: 0 0 15px 0;
+    font-size: 28px;
+}
+
+.gc-banner-contribuir p {
+    color: rgba(255,255,255,0.9);
+    font-size: 16px;
+    margin: 0 0 20px 0;
+}
+
+.gc-banner-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Balanço resumido */
+.gc-balanco-resumo {
+    margin-bottom: 30px;
+}
+
+.gc-balanco-card h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    border-bottom: 2px solid #e1e5e9;
+    padding-bottom: 10px;
+}
+
+.gc-saldo-principal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.gc-saldo-valor {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.gc-balanco-mes-atual h4 {
+    margin: 0 0 15px 0;
+    color: #555;
+    font-size: 16px;
+}
+
+.gc-balanco-detalhes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.gc-receitas,
+.gc-despesas {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.gc-receitas {
+    background: rgba(70, 180, 80, 0.1);
+}
+
+.gc-despesas {
+    background: rgba(220, 50, 50, 0.1);
+}
+
+/* Valores */
+.gc-valor {
+    font-weight: bold;
+}
+
+.gc-valor.gc-positivo {
+    color: #28a745;
+}
+
+.gc-valor.gc-negativo {
+    color: #dc3545;
+}
+
+.gc-label {
+    color: #666;
+    font-weight: 600;
+}
+
+/* Ações */
+.gc-acoes-container h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    text-align: center;
+}
+
+.gc-acoes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.gc-acao-card {
+    background: #fff;
+    border: 2px solid #e1e5e9;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.gc-acao-card:hover {
+    border-color: #0073aa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,115,170,0.15);
+}
+
+.gc-acao-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.gc-acao-card h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.gc-acao-card p {
+    color: #666;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+}
+
+/* Transparência */
+.gc-transparencia .gc-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    text-align: center;
+}
+
+.gc-transparencia h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.gc-transparencia p {
+    color: #666;
+    line-height: 1.6;
+    margin: 0 0 25px 0;
+}
+
+.gc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+}
+
+.gc-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.gc-stat-numero {
+    font-size: 32px;
+    font-weight: bold;
+    color: #0073aa;
+    line-height: 1;
+}
+
+.gc-stat-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+/* Modal */
+.gc-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.gc-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.gc-modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    padding: 15px;
+    cursor: pointer;
+}
+
+.gc-modal-close:hover {
+    color: #000;
+}
+
+#gc-modal-body {
+    padding: 0 30px 30px 30px;
+}
+
+#gc-modal-body h2 {
+    margin: 0 0 20px 0;
+    padding: 20px 0 15px 0;
+    border-bottom: 1px solid #eee;
+}
+
+/* Formulários */
+#gc-modal-body input,
+#gc-modal-body textarea,
+#gc-modal-body select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+#gc-modal-body label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Instruções PIX */
+.gc-instrucoes-pix {
+    background: #e7f3ff;
+    border: 1px solid #b8daff;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.gc-instrucoes-pix h4 {
+    margin: 0 0 10px 0;
+    color: #004085;
+}
+
+.gc-pix-info {
+    margin: 10px 0;
+}
+
+.gc-pix-info p {
+    margin: 5px 0;
+}
+
+.gc-aviso {
+    font-size: 12px;
+    color: #856404;
+    background: #fff3cd;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+/* Badges */
+.gc-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gc-badge-large {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.gc-estado-previsto {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.gc-estado-efetivado {
+    background: #d4edda;
+    color: #155724;
+}
+
+.gc-estado-cancelado,
+.gc-estado-expirado {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.gc-estado-em_contestacao,
+.gc-estado-em_disputa {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+/* Lançamento detalhes */
+.gc-lancamento-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.gc-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.gc-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.gc-info-item label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.gc-valor-grande {
+    font-size: 20px;
+}
+
+.gc-descricoes {
+    margin-bottom: 25px;
+}
+
+.gc-descricao {
+    margin-bottom: 20px;
+}
+
+.gc-descricao label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.gc-descricao p {
+    margin: 0;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* Contador de prazo */
+.gc-prazo-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.gc-prazo-tipo {
+    font-weight: 600;
+    color: #495057;
+}
+
+.gc-contador-prazo {
+    margin-top: 10px;
+}
+
+.gc-tempo-restante {
+    font-size: 24px;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.gc-tempo-restante.gc-vencido {
+    color: #dc3545;
+}
+
+/* Ações do lançamento */
+.gc-acoes-lancamento {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* Livro Caixa */
+.gc-periodo-selector {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.gc-form-periodo {
+    margin-bottom: 15px;
+}
+
+.gc-periodo-campos {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.gc-periodo-campos label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.gc-periodo-campos input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.gc-periodos-rapidos {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Balanço do período */
+.gc-balanco-periodo-grid,
+.gc-balanco-resumo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.gc-balanco-item {
+    text-align: center;
+    padding: 15px;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.gc-saldo-final {
+    background: #e9ecef;
+    border: 2px solid #dee2e6;
+}
+
+.gc-valor-destaque {
+    font-size: 18px;
+}
+
+/* Gráfico */
+.gc-chart-container {
+    height: 300px;
+    margin-top: 15px;
+}
+
+#gc-canvas-evolucao {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Tabela de lançamentos */
+.gc-tabela-container {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.gc-tabela-lancamentos {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.gc-tabela-lancamentos th,
+.gc-tabela-lancamentos td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.gc-tabela-lancamentos th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.gc-tabela-lancamentos tr:hover {
+    background: #f8f9fa;
+}
+
+.gc-numero-lancamento {
+    font-family: monospace;
+}
+
+.gc-valor-entrada,
+.gc-valor-saida {
+    text-align: right;
+    font-weight: 600;
+}
+
+.gc-valor-vazio {
+    color: #adb5bd;
+}
+
+/* Empty state */
+.gc-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .gc-container {
+        padding: 15px;
+    }
+    
+    .gc-banner-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .gc-balanco-detalhes {
+        grid-template-columns: 1fr;
+    }
+    
+    .gc-acoes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .gc-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .gc-lancamento-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .gc-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .gc-acoes-lancamento {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .gc-periodo-campos {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .gc-periodo-campos input {
+        width: 100%;
+    }
+    
+    .gc-periodos-rapidos {
+        justify-content: center;
+    }
+    
+    .gc-modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+}

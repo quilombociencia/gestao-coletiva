@@ -1,0 +1,682 @@
+# Copyright (C) 2024 Gestão Coletiva
+# This file is distributed under the same license as the Gestão Coletiva package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Gestão Coletiva 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: gestao-coletiva.php:XX
+msgid "Gestão Coletiva"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Gestão Coletiva - Dashboard"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Contribua com o Projeto"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Sua contribuição ajuda a manter este projeto ativo e em constante desenvolvimento."
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Fazer Doação"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Balanço do Mês"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Receitas:"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Despesas:"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Saldo:"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Ações Rápidas"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Incluir Fundos"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Incluir Despesa"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Ver Lançamento"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Livro Caixa"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Contestações Pendentes"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Ver"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Ver Todas"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Lançamentos Recentes"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Número"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Tipo"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Descrição"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Valor"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Estado"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Data"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Receita"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Despesa"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Ver Todos"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Nenhum lançamento encontrado."
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Status do Sistema"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Próximo processamento:"
+msgstr ""
+
+#: admin/views/dashboard.php:XX
+msgid "Plugin versão:"
+msgstr ""
+
+#: admin/views/lancamentos.php:XX
+msgid "Lançamentos"
+msgstr ""
+
+#: admin/views/lancamentos.php:XX
+msgid "Adicionar Novo"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Todos os tipos"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Receitas"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Despesas"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Todos os estados"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Previsto"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Efetivado"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Cancelado"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Expirado"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Em Contestação"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Filtrar"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Limpar"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Autor"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Prazo"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Ações"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Usuário removido"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Editar"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Efetivar"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Nenhum lançamento encontrado"
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Não há lançamentos que correspondam aos critérios selecionados."
+msgstr ""
+
+#: admin/views/lancamentos/listar.php:XX
+msgid "Criar Primeiro Lançamento"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Criar Lançamento"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Inclusão de Fundos (Receita)"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Inclusão de Despesa"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Descrição Curta"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Breve descrição do lançamento (máximo 255 caracteres)"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Descrição Detalhada"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Descrição completa e detalhada do lançamento"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Valor (R$)"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Valor em reais (use ponto como separador decimal)"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Recorrência"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Única"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Mensal"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Trimestral"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Anual"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Comprovantes"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Anexe comprovantes da despesa (PDF, JPG, PNG - múltiplos arquivos permitidos)"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Instruções para Doação"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Doação via PIX"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Para confirmar sua doação, realize a transferência via PIX usando as informações abaixo:"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Chave PIX:"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Beneficiário:"
+msgstr ""
+
+#: admin/views/lancamentos/criar.php:XX
+msgid "Após realizar o PIX, seu lançamento ficará com status \"Previsto\" até que seja verificado pela administração e alterado para \"Efetivado\"."
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Contestações"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Nova Contestação"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Lançamento"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Doação não contabilizada"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Despesa não verificada"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Responder"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Analisar"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Nenhuma contestação encontrada"
+msgstr ""
+
+#: admin/views/contestacoes.php:XX
+msgid "Não há contestações registradas no sistema."
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Relatórios"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Incluir Relatório"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Livro Caixa Público"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Data Inicial:"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Data Final:"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Gerar Relatório"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Relatórios Mensais"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Período:"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Enviado em:"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Por:"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Download"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Excluir"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Nenhum relatório mensal encontrado."
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Relatórios Trimestrais"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Nenhum relatório trimestral encontrado."
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Relatórios Anuais"
+msgstr ""
+
+#: admin/views/relatorios.php:XX
+msgid "Nenhum relatório anual encontrado."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Configurações - Gestão Coletiva"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Você não tem permissão para acessar esta página."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Prazos do Sistema"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Configure os prazos em horas ou dias para cada etapa do processo de gestão coletiva."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Prazo para Efetivação (horas)"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Tempo para um administrador conferir o crédito em conta ou os recibos de despesa."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Prazo para Resposta a Contestações (horas)"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Tempo para que o autor do lançamento ou administrador responda às contestações."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Prazo para Análise de Resposta (horas)"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Tempo para que o autor da contestação analise a resposta recebida."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Prazo para Publicação de Disputas (horas)"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Tempo para publicar um texto no blog com detalhamento da disputa."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Prazo para Resolução de Disputas (dias)"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Tempo em dias para votação da comunidade sobre disputas publicadas."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Textos e Mensagens"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Texto de Agradecimento para Certificados"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Texto que aparecerá nos certificados de doação para agradecer os contribuidores."
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Salvar Configurações"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Informações do Sistema"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Versão do Plugin:"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Próximo Processamento:"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Não agendado"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Status do Cron:"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Ativo"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Inativo"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Ações de Sistema"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Processar Vencimentos Agora"
+msgstr ""
+
+#: admin/views/configuracoes.php:XX
+msgid "Executa manualmente o processamento de lançamentos e contestações vencidas."
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Sua contribuição ajuda a manter este projeto ativo e em constante desenvolvimento. Seja parte desta iniciativa coletiva!"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Consultar Doação"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Situação Financeira"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Saldo Atual:"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Movimento do Mês"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Entradas:"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Saídas:"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "O que você pode fazer?"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Registre sua doação pontual ou recorrente via PIX"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Doar Agora"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Registre gastos do projeto com comprovantes"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Registrar Gasto"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Consulte o status de uma doação ou gasto"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Consultar"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Veja a transparência total das finanças"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Ver Relatórios"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Transparência Total"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Todos os lançamentos são públicos e podem ser verificados a qualquer momento. A prestação de contas acontece em tempo real através do livro-caixa público e periodicamente através de relatórios detalhados."
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Lançamentos Confirmados"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Contestações Resolvidas"
+msgstr ""
+
+#: public/views/painel.php:XX
+msgid "Transparência"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Acesso negado"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Lançamento criado com sucesso!"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Erro ao atualizar estado"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Estado atualizado com sucesso!"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Contestação criada com sucesso!"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Erro ao responder contestação"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Contestação respondida com sucesso!"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Erro ao analisar contestação"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Contestação analisada com sucesso!"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Erro no upload do arquivo"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Relatório enviado com sucesso!"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Configurações salvas com sucesso!"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Não foi possível gerar o certificado"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Número do lançamento não informado"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Lançamento não encontrado"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Datas não informadas"
+msgstr ""
+
+#: includes/class-gc-admin.php:XX
+msgid "Processamento concluído! %d lançamentos e %d contestações foram processados."
+msgstr ""

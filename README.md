@@ -7,7 +7,7 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 **Autor**: Quilombo Ciência (https://github.com/quilombociencia)  
 **Repositório**: https://github.com/quilombociencia/gestao-coletiva  
 **Licença**: GPL/GNU 3.0  
-**Versão**: 1.0.1
+**Versão**: 1.0.2
 
 ## Funcionalidades Principais
 
@@ -234,6 +234,20 @@ Para questões, bugs ou sugestões:
 GPL/GNU 3.0 - Licença Pública Geral GNU versão 3.0.
 
 ## Changelog
+
+### v1.0.2
+- 🐛 **CORREÇÃO CRÍTICA**: Lógica de estados nas contestações
+  - Contestações procedentes agora marcam lançamento como "CONTESTADO"
+  - Contestações improcedentes mantêm lançamento como "CONFIRMADO"
+  - Interface administrativa com opções claras sobre impacto da decisão
+- 🔧 **FUNCIONALIDADE**: Sistema de contestações totalmente funcional
+  - Botão "Nova Contestação" no admin funcionando
+  - Botão "Contestar" em lançamentos funcionando
+  - Modal de resposta com lógica corrigida
+- ✅ **VALIDAÇÃO**: Fluxo completo de contestação testado e aprovado
+  - Criação → Resposta → Análise → Resolução
+  - Estados corretos em todas as etapas
+  - Permissões mantidas (apenas usuários logados)
 
 ### v1.0.1
 - 🔒 **SEGURANÇA**: Restrição de permissões para registro de despesas

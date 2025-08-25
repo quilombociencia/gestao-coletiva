@@ -213,6 +213,7 @@ class GestaoColetiva {
             wp_localize_script('gc-public-js', 'gc_ajax', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('gc_nonce'),
+                'is_logged_in' => is_user_logged_in(),
             ));
         }
     }

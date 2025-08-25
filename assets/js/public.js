@@ -161,6 +161,13 @@ jQuery(document).ready(function($) {
     // Abrir contestação
     $(document).on('click', '.gc-abrir-contestacao', function() {
         var lancamentoId = $(this).data('id');
+        
+        // Verificar se o usuário está logado
+        if (typeof gc_ajax === 'undefined' || !gc_ajax.is_logged_in) {
+            alert('Você precisa estar logado para criar uma contestação. Faça login e tente novamente.');
+            return;
+        }
+        
         gc_abrir_modal_contestacao(lancamentoId);
     });
     
@@ -286,8 +293,8 @@ jQuery(document).ready(function($) {
                     }
                     gc_fechar_modal();
                 },
-                error: function() {
-                    alert('Erro ao criar contestação');
+                error: function(xhr, status, error) {
+                    alert('Erro ao criar contestação. Verifique se você está logado.');
                     gc_fechar_modal();
                 }
             });

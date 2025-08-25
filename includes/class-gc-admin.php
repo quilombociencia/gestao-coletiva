@@ -199,7 +199,8 @@ class GC_Admin {
         check_ajax_referer('gc_nonce', 'nonce');
         
         if (!is_user_logged_in()) {
-            wp_die(__('Acesso negado', 'gestao-coletiva'));
+            wp_send_json_error(__('Você precisa estar logado para criar uma contestação.', 'gestao-coletiva'));
+            return;
         }
         
         if (!class_exists('GC_Contestacao')) {

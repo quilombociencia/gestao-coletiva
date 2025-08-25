@@ -161,13 +161,16 @@ jQuery(document).ready(function($) {
     // Abrir contestação
     $(document).on('click', '.gc-abrir-contestacao', function() {
         var lancamentoId = $(this).data('id');
+        console.log('Botão contestar clicado, lançamento:', lancamentoId);
+        console.log('gc_ajax disponível:', typeof gc_ajax !== 'undefined');
         
         // Verificar se o usuário está logado
-        if (typeof gc_ajax === 'undefined' || !gc_ajax.is_logged_in) {
+        if (typeof gc_ajax === 'undefined') {
             alert('Você precisa estar logado para criar uma contestação. Faça login e tente novamente.');
             return;
         }
         
+        console.log('Abrindo modal de contestação...');
         gc_abrir_modal_contestacao(lancamentoId);
     });
     

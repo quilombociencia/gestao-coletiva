@@ -37,12 +37,24 @@ jQuery(document).ready(function($) {
         }
     });
     
+    // Botão Nova Contestação
+    $('#btn-nova-contestacao').on('click', function(e) {
+        e.preventDefault();
+        gc_abrir_modal_nova_contestacao();
+    });
+    
     // Responder contestação
     $(document).on('click', '.gc-responder-contestacao', function() {
         var contestacaoId = $(this).data('id');
         gc_abrir_modal_resposta_contestacao(contestacaoId);
     });
     
+    // Abrir contestação (na visualização de lançamento)
+    $(document).on('click', '.gc-abrir-contestacao', function() {
+        var lancamentoId = $(this).data('id');
+        gc_abrir_modal_contestacao_admin(lancamentoId);
+    });
+
     // Analisar contestação
     $(document).on('click', '.gc-analisar-contestacao', function() {
         var contestacaoId = $(this).data('id');
@@ -232,6 +244,134 @@ jQuery(document).ready(function($) {
                 alert('Erro ao processar solicitação');
                 gc_fechar_modal();
             }
+        });
+    }
+    
+    function gc_abrir_modal_nova_contestacao() {
+        var html = '<div class="gc-modal-nova-contestacao">';
+        html += '<h3>Nova Contestação</h3>';
+        html += '<form id="form-nova-contestacao">';
+        html += '<p><label>Número do Lançamento:</label>';
+        html += '<input type="text" name="numero_lancamento" required placeholder="Digite o número do lançamento" style="width: 100%;"></p>';
+        html += '<p><label>Tipo de Contestação:</label>';
+        html += '<select name="tipo" required style="width: 100%;">';
+        html += '<option value="">Selecione...</option>';
+        html += '<option value="doacao_nao_contabilizada">Doação não foi contabilizada</option>';
+        html += '<option value="despesa_nao_verificada">Despesa não pôde ser verificada</option>';
+        html += '</select></p>';
+        html += '<p><label>Descrição:</label>';
+        html += '<textarea name="descricao" rows="5" required placeholder="Descreva detalhadamente a contestação..." style="width: 100%;"></textarea></p>';
+        html += '<p><label>Comprovante (opcional):</label>';
+        html += '<input type="file" name="comprovante" accept=".pdf,.jpg,.jpeg,.png"></p>';
+        html += '<p><button type="submit" class="button button-primary">Criar Contestação</button>';
+        html += ' <button type="button" class="button" onclick="gc_fechar_modal()">Cancelar</button></p>';
+        html += '</form>';
+        html += '</div>';
+        
+        gc_abrir_modal(html);
+        
+        $('#form-nova-contestacao').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Primeiro, buscar o lançamento pelo número
+            var numeroLancamento = $('input[name="numero_lancamento"]').val();
+            
+            $.ajax({
+                url: gc_ajax.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'gc_buscar_lancamento',
+                    numero: numeroLancamento,
+                    nonce: gc_ajax.nonce
+                },
+                success: function(response) {
+                    if (response.success && response.data) {
+                        // Lançamento encontrado, criar contestação
+                        var formData = new FormData($('#form-nova-contestacao')[0]);
+                        formData.append('action', 'gc_criar_contestacao');
+                        formData.append('lancamento_id', response.data.id);
+                        formData.append('nonce', gc_ajax.nonce);
+                        
+                        $.ajax({
+                            url: gc_ajax.ajax_url,
+                            type: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(contestResponse) {
+                                if (contestResponse.success) {
+                                    alert(contestResponse.data.message);
+                                    location.reload();
+                                } else {
+                                    alert('Erro: ' + contestResponse.data);
+                                }
+                                gc_fechar_modal();
+                            },
+                            error: function() {
+                                alert('Erro ao criar contestação');
+                                gc_fechar_modal();
+                            }
+                        });
+                    } else {
+                        alert('Lançamento não encontrado com o número: ' + numeroLancamento);
+                    }
+                },
+                error: function() {
+                    alert('Erro ao buscar lançamento');
+                }
+            });
+        });
+    }
+    
+    function gc_abrir_modal_contestacao_admin(lancamentoId) {
+        var html = '<div class="gc-modal-contestacao">';
+        html += '<h3>Abrir Contestação</h3>';
+        html += '<form id="form-contestacao-admin">';
+        html += '<p><label>Tipo de Contestação:</label>';
+        html += '<select name="tipo" required>';
+        html += '<option value="">Selecione...</option>';
+        html += '<option value="doacao_nao_contabilizada">Doação não foi contabilizada</option>';
+        html += '<option value="despesa_nao_verificada">Despesa não pôde ser verificada</option>';
+        html += '</select></p>';
+        html += '<p><label>Descrição:</label>';
+        html += '<textarea name="descricao" rows="5" style="width: 100%;" required placeholder="Descreva detalhadamente a contestação..."></textarea></p>';
+        html += '<p><label>Comprovante (opcional):</label>';
+        html += '<input type="file" name="comprovante" accept=".pdf,.jpg,.jpeg,.png"></p>';
+        html += '<p><button type="submit" class="button button-primary">Enviar Contestação</button>';
+        html += ' <button type="button" class="button" onclick="gc_fechar_modal()">Cancelar</button></p>';
+        html += '</form>';
+        html += '</div>';
+        
+        gc_abrir_modal(html);
+        
+        $('#form-contestacao-admin').on('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(this);
+            formData.append('action', 'gc_criar_contestacao');
+            formData.append('lancamento_id', lancamentoId);
+            formData.append('nonce', gc_ajax.nonce);
+            
+            $.ajax({
+                url: gc_ajax.ajax_url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.data.message);
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.data);
+                    }
+                    gc_fechar_modal();
+                },
+                error: function(xhr, status, error) {
+                    alert('Erro ao criar contestação');
+                    gc_fechar_modal();
+                }
+            });
         });
     }
     

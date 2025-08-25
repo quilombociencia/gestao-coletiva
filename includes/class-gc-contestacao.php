@@ -105,10 +105,25 @@ class GC_Contestacao {
         if ($result !== false) {
             $contestacao = self::obter($id);
             
-            if ($novo_estado === 'respondida') {
-                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'confirmado');
-            } elseif ($novo_estado === 'aceita') {
+            // Atualizar estado do lançamento baseado na decisão
+            if ($novo_estado === 'procedente') {
+                // Contestação PROCEDENTE: admin concorda que há erro no lançamento
                 GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'contestado');
+                // Atualizar estado da contestação para 'respondida' para seguir fluxo
+                $wpdb->update(
+                    $table_name,
+                    array('estado' => 'respondida'),
+                    array('id' => $id)
+                );
+            } elseif ($novo_estado === 'improcedente') {
+                // Contestação IMPROCEDENTE: admin discorda, lançamento está correto
+                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'confirmado');
+                // Atualizar estado da contestação para 'respondida' para seguir fluxo
+                $wpdb->update(
+                    $table_name,
+                    array('estado' => 'respondida'),
+                    array('id' => $id)
+                );
             }
         }
         

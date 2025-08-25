@@ -164,8 +164,8 @@ jQuery(document).ready(function($) {
         html += '<p><label>Ação:</label>';
         html += '<select name="novo_estado" required>';
         html += '<option value="">Selecione...</option>';
-        html += '<option value="respondida">Contestação Procedente</option>';
-        html += '<option value="aceita">Contestação Improcedente</option>';
+        html += '<option value="procedente">Contestação Procedente (lançamento será contestado)</option>';
+        html += '<option value="improcedente">Contestação Improcedente (lançamento será confirmado)</option>';
         html += '</select></p>';
         html += '<p><button type="submit" class="button button-primary">Enviar Resposta</button>';
         html += ' <button type="button" class="button gc-fechar-modal">Cancelar</button></p>';

@@ -9,6 +9,10 @@ $data_fim = date('Y-m-t 23:59:59');
 
 $balanco_mes = GC_Lancamento::calcular_saldo_periodo($data_inicio, $data_fim, true);
 $saldo_atual = GC_Lancamento::calcular_saldo_periodo('2000-01-01', date('Y-m-d 23:59:59'));
+
+// Dados PIX para o JavaScript
+$chave_pix = GC_Database::get_setting('chave_pix');
+$nome_beneficiario_pix = GC_Database::get_setting('nome_beneficiario_pix');
 ?>
 
 <div id="gc-painel-publico" class="gc-container">
@@ -173,7 +177,17 @@ jQuery(document).ready(function($) {
         if (tipo === 'receita') {
             html += '<div class="gc-instrucoes-pix">';
             html += '<h4><?php _e("Instruções para Doação via PIX", "gestao-coletiva"); ?></h4>';
-            html += '<p><?php _e("Chave PIX:", "gestao-coletiva"); ?> <strong>contato@exemplo.com</strong></p>';
+            <?php if (!empty($chave_pix)): ?>
+                html += '<p><?php _e("Para confirmar sua doação, realize a transferência via PIX usando as informações abaixo:", "gestao-coletiva"); ?></p>';
+                html += '<div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 4px; padding: 15px; margin: 10px 0;">';
+                html += '<p><strong><?php _e("Chave PIX:", "gestao-coletiva"); ?></strong> <span style="font-family: monospace; background: #f1f1f1; padding: 2px 6px; border-radius: 3px;"><?php echo esc_js($chave_pix); ?></span></p>';
+                <?php if (!empty($nome_beneficiario_pix)): ?>
+                    html += '<p><strong><?php _e("Beneficiário:", "gestao-coletiva"); ?></strong> <?php echo esc_js($nome_beneficiario_pix); ?></p>';
+                <?php endif; ?>
+                html += '</div>';
+            <?php else: ?>
+                html += '<p style="color: #d63638; font-style: italic;"><?php _e("⚠️ Chave PIX não configurada. Entre em contato com a administração.", "gestao-coletiva"); ?></p>';
+            <?php endif; ?>
             html += '<p><?php _e("Após fazer o PIX, seu lançamento ficará 'Previsto' até ser confirmado pela administração.", "gestao-coletiva"); ?></p>';
             html += '</div>';
         }

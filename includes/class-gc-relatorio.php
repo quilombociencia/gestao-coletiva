@@ -164,10 +164,13 @@ class GC_Relatorio {
         
         $table_name = $wpdb->prefix . 'gc_lancamentos';
         
+        // Estados que representam valores efetivamente confirmados/realizados
+        $estados_confirmados = "('efetivado', 'confirmado', 'aceito', 'retificado_comunidade')";
+        
         $receitas = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(valor), 0) FROM $table_name 
              WHERE tipo = 'receita' 
-             AND estado = 'efetivado'
+             AND estado IN $estados_confirmados
              AND data_criacao < %s",
             $data_limite
         ));
@@ -175,7 +178,7 @@ class GC_Relatorio {
         $despesas = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(valor), 0) FROM $table_name 
              WHERE tipo = 'despesa' 
-             AND estado = 'efetivado'
+             AND estado IN $estados_confirmados
              AND data_criacao < %s",
             $data_limite
         ));
@@ -190,8 +193,8 @@ class GC_Relatorio {
         
         $sql = $wpdb->prepare(
             "SELECT DATE(data_criacao) as data,
-                    SUM(CASE WHEN tipo = 'receita' AND estado = 'efetivado' THEN valor ELSE 0 END) as receitas,
-                    SUM(CASE WHEN tipo = 'despesa' AND estado = 'efetivado' THEN valor ELSE 0 END) as despesas
+                    SUM(CASE WHEN tipo = 'receita' AND estado IN ('efetivado', 'confirmado', 'aceito', 'retificado_comunidade') THEN valor ELSE 0 END) as receitas,
+                    SUM(CASE WHEN tipo = 'despesa' AND estado IN ('efetivado', 'confirmado', 'aceito', 'retificado_comunidade') THEN valor ELSE 0 END) as despesas
              FROM $table_name 
              WHERE data_criacao BETWEEN %s AND %s
              GROUP BY DATE(data_criacao)

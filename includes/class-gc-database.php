@@ -44,7 +44,7 @@ class GC_Database {
             tipo enum('doacao_nao_contabilizada', 'despesa_nao_verificada') NOT NULL,
             descricao text NOT NULL,
             comprovante text,
-            estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'disputa_finalizada', 'disputa_resolvida') DEFAULT 'pendente',
+            estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'votacao_aberta', 'disputa_finalizada', 'expirada') DEFAULT 'pendente',
             data_criacao datetime NOT NULL,
             data_resposta datetime NULL,
             data_analise datetime NULL,
@@ -107,6 +107,9 @@ class GC_Database {
                 }
             }
         }
+        
+        // Garantir que as atualizações estruturais sejam aplicadas automaticamente
+        self::atualizar_estrutura_contestacoes();
     }
     
     public static function insert_default_settings() {
@@ -142,6 +145,16 @@ class GC_Database {
                 'chave' => 'texto_agradecimento_certificado',
                 'valor' => 'Agradecemos sua contribuição para o projeto!',
                 'descricao' => 'Texto de agradecimento para certificados de doação'
+            ),
+            array(
+                'chave' => 'chave_pix',
+                'valor' => '',
+                'descricao' => 'Chave PIX para recebimento de doações'
+            ),
+            array(
+                'chave' => 'nome_beneficiario_pix',
+                'valor' => '',
+                'descricao' => 'Nome do beneficiário da chave PIX'
             )
         );
         
@@ -361,9 +374,9 @@ class GC_Database {
             }
         }
         
-        if ($estado_column && strpos($estado_column->Type, 'disputa_resolvida') === false) {
-            $wpdb->query("ALTER TABLE $table_name MODIFY estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'disputa_finalizada', 'disputa_resolvida') DEFAULT 'pendente'");
-            $alteracoes_executadas[] = 'estado_enum_atualizado';
+        if ($estado_column && (strpos($estado_column->Type, 'votacao_aberta') === false || strpos($estado_column->Type, 'expirada') === false)) {
+            $wpdb->query("ALTER TABLE $table_name MODIFY estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'votacao_aberta', 'disputa_finalizada', 'expirada') DEFAULT 'pendente'");
+            $alteracoes_executadas[] = 'estado_enum_atualizado_v2';
         }
         
         return $alteracoes_executadas;

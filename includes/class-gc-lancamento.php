@@ -196,7 +196,9 @@ class GC_Lancamento {
         
         $table_name = $wpdb->prefix . 'gc_lancamentos';
         
-        $estados = array('efetivado');
+        // Estados que representam valores efetivamente confirmados/realizados
+        $estados = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+        
         if ($incluir_previstos) {
             $estados[] = 'previsto';
         }
@@ -231,7 +233,10 @@ class GC_Lancamento {
     public static function gerar_certificado($id) {
         $lancamento = self::obter($id);
         
-        if (!$lancamento || $lancamento->estado !== 'efetivado') {
+        // Estados que permitem gerar certificado (valores confirmados/realizados)
+        $estados_validos = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+        
+        if (!$lancamento || !in_array($lancamento->estado, $estados_validos)) {
             return false;
         }
         

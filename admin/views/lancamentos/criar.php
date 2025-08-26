@@ -88,8 +88,20 @@ $tipo_default = isset($_GET['tipo']) ? sanitize_text_field($_GET['tipo']) : 'rec
                 <p><?php _e('Para confirmar sua doação, realize a transferência via PIX usando as informações abaixo:', 'gestao-coletiva'); ?></p>
                 
                 <div class="gc-pix-info">
-                    <p><strong><?php _e('Chave PIX:', 'gestao-coletiva'); ?></strong> contato@exemplo.com</p>
-                    <p><strong><?php _e('Beneficiário:', 'gestao-coletiva'); ?></strong> Nome do Projeto</p>
+                    <?php 
+                    $chave_pix = GC_Database::get_setting('chave_pix');
+                    $nome_beneficiario = GC_Database::get_setting('nome_beneficiario_pix');
+                    ?>
+                    <?php if (!empty($chave_pix)): ?>
+                        <p><strong><?php _e('Chave PIX:', 'gestao-coletiva'); ?></strong> <span style="font-family: monospace; background: #f1f1f1; padding: 2px 6px; border-radius: 3px;"><?php echo esc_html($chave_pix); ?></span></p>
+                        <?php if (!empty($nome_beneficiario)): ?>
+                            <p><strong><?php _e('Beneficiário:', 'gestao-coletiva'); ?></strong> <?php echo esc_html($nome_beneficiario); ?></p>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <p style="color: #d63638; font-style: italic;">
+                            <?php _e('⚠️ Chave PIX não configurada. Configure em Gestão Coletiva → Configurações.', 'gestao-coletiva'); ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
                 
                 <p class="gc-aviso">

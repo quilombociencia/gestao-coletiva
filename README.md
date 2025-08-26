@@ -7,7 +7,7 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 **Autor**: Quilombo Ciência (https://github.com/quilombociencia)  
 **Repositório**: https://github.com/quilombociencia/gestao-coletiva  
 **Licença**: GPL/GNU 3.0  
-**Versão**: 1.0.2
+**Versão**: 1.1.0
 
 ## Funcionalidades Principais
 
@@ -16,6 +16,7 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 - **Estados automáticos**: Previsto → Efetivado → Contestado/Aceito
 - **Prazos automatizados**: Para efetivação, contestação e resolução
 - **Recorrência**: Doações únicas, mensais, trimestrais ou anuais
+- **🆕 PIX Integrado**: Configuração e exibição automática de chave PIX para doações
 
 ### 🔍 Transparência Total
 - **Livro-caixa público**: Visualização em tempo real de todas movimentações
@@ -36,12 +37,32 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 - **Verificação manual** pela administração
 - **Certificados digitais** para doações efetivadas
 
+## 🎉 Novidades da v1.1.0
+
+### 🏦 PIX Totalmente Integrado
+- **Configuração no admin**: Configure sua chave PIX e nome do beneficiário nas configurações
+- **Exibição automática**: Informações PIX aparecem automaticamente nos formulários de doação
+- **Cópia com um clique**: Clique na chave PIX para copiar automaticamente
+- **Visual destacado**: Seção PIX com design atrativo e informativo
+
+### 🎨 Interface Aprimorada  
+- **"Dashboard" → "Painel"**: Terminologia em português para melhor usabilidade
+- **Limpeza técnica**: Removidos botões de correção manual desnecessários
+- **Instalação simplificada**: Estrutura do banco atualizada automaticamente
+
+### 🐛 Correções Importantes
+- **Contabilização correta**: Estados 'confirmado', 'aceito' e 'retificado_comunidade' agora contam nos saldos
+- **Certificados expandidos**: Disponíveis para todas as doações efetivamente confirmadas
+- **Contestações ajustadas**: Possível contestar qualquer valor já confirmado
+
 ## Instalação
 
 1. Faça upload dos arquivos para `/wp-content/plugins/gestao-coletiva/`
 2. Ative o plugin no painel administrativo do WordPress
 3. Configure os prazos em **Gestão Coletiva → Configurações**
-4. Customize as informações de PIX no código ou através de hooks
+4. **🆕 Configure o PIX**: Na seção "Configurações PIX", informe:
+   - **Chave PIX**: Email, CPF, celular ou chave aleatória
+   - **Nome do Beneficiário**: Nome completo do titular da conta
 
 ## Estrutura do Projeto
 

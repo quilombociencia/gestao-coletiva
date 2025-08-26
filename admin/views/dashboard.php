@@ -13,7 +13,7 @@ $contestacoes_pendentes = GC_Contestacao::obter_pendentes_por_usuario();
 ?>
 
 <div class="wrap">
-    <h1><?php _e('Gestão Coletiva - Dashboard', 'gestao-coletiva'); ?></h1>
+    <h1><?php _e('Gestão Coletiva - Painel', 'gestao-coletiva'); ?></h1>
     
     <div class="gc-dashboard">
         <div class="gc-row">

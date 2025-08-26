@@ -179,7 +179,7 @@ class GC_Contestacao {
         }
         
         $update_data = array(
-            'estado' => 'disputa_finalizada',
+            'estado' => 'votacao_aberta',
             'link_postagem_blog' => esc_url_raw($link_postagem),
             'link_formulario_votacao' => esc_url_raw($link_votacao),
             'data_finalizacao_disputa' => current_time('mysql')
@@ -196,7 +196,7 @@ class GC_Contestacao {
             // O lançamento permanece em 'em_disputa' até resultado da votação
             return array(
                 'success' => true,
-                'message' => 'Disputa finalizada com sucesso. Links registrados para votação comunitária.'
+                'message' => 'Disputa publicada com sucesso. Votação está aberta para a comunidade.'
             );
         }
         
@@ -225,7 +225,7 @@ class GC_Contestacao {
         $sql = "SELECT c.*, l.numero_unico, l.descricao_curta as lancamento_descricao, l.valor as lancamento_valor
                 FROM $table_name c
                 JOIN {$wpdb->prefix}gc_lancamentos l ON c.lancamento_id = l.id
-                WHERE c.estado = 'disputa_finalizada'
+                WHERE c.estado = 'votacao_aberta'
                 ORDER BY c.data_finalizacao_disputa ASC";
         
         return $wpdb->get_results($sql);
@@ -241,8 +241,8 @@ class GC_Contestacao {
         $table_name = $wpdb->prefix . 'gc_contestacoes';
         $contestacao = self::obter($id);
         
-        if (!$contestacao || $contestacao->estado !== 'disputa_finalizada') {
-            return new WP_Error('invalid_state', 'Contestação deve estar com disputa finalizada para registrar resultado');
+        if (!$contestacao || $contestacao->estado !== 'votacao_aberta') {
+            return new WP_Error('invalid_state', 'Contestação deve estar com votação aberta para registrar resultado');
         }
         
         if (!in_array($resultado_votacao, ['contestacao_procedente', 'contestacao_improcedente'])) {
@@ -257,7 +257,7 @@ class GC_Contestacao {
         error_log('Gestão Coletiva - Colunas da tabela contestações: ' . implode(', ', $column_names));
         
         $update_data = array(
-            'estado' => 'disputa_resolvida'
+            'estado' => 'disputa_finalizada'
         );
         
         // Só adicionar campos que existem na tabela
@@ -331,6 +331,54 @@ class GC_Contestacao {
         }
         
         return $corrigidas;
+    }
+    
+    public static function corrigir_estados_inconsistentes() {
+        global $wpdb;
+        
+        $contestacoes_table = $wpdb->prefix . 'gc_contestacoes';
+        $lancamentos_table = $wpdb->prefix . 'gc_lancamentos';
+        
+        // Buscar contestações onde o lançamento foi resolvido pela comunidade
+        // mas a contestação não tem estado adequado
+        $sql = "SELECT c.id, c.estado as contestacao_estado, l.estado as lancamento_estado, l.id as lancamento_id
+                FROM $contestacoes_table c
+                JOIN $lancamentos_table l ON c.lancamento_id = l.id
+                WHERE l.estado IN ('retificado_comunidade', 'contestado_comunidade')
+                AND c.estado NOT IN ('disputa_resolvida', 'aceita')";
+        
+        $contestacoes_inconsistentes = $wpdb->get_results($sql);
+        
+        $corrigidas = 0;
+        foreach ($contestacoes_inconsistentes as $contestacao) {
+            // Determinar resultado baseado no estado do lançamento
+            if ($contestacao->lancamento_estado === 'retificado_comunidade') {
+                $resultado = 'contestacao_procedente';
+            } else { // contestado_comunidade
+                $resultado = 'contestacao_improcedente';
+            }
+            
+            // Atualizar contestação
+            $result = $wpdb->update(
+                $contestacoes_table,
+                array(
+                    'estado' => 'disputa_resolvida',
+                    'resultado_votacao' => $resultado,
+                    'data_resolucao_final' => current_time('mysql'),
+                    'observacoes_finais' => 'Estado corrigido automaticamente com base no resultado do lançamento.'
+                ),
+                array('id' => $contestacao->id)
+            );
+            
+            if ($result !== false) {
+                $corrigidas++;
+            }
+        }
+        
+        return array(
+            'corrigidas' => $corrigidas,
+            'encontradas' => count($contestacoes_inconsistentes)
+        );
     }
     
     public static function pode_responder($contestacao_id, $user_id = null) {
@@ -417,10 +465,14 @@ class GC_Contestacao {
         
         $prazo_resposta = intval(GC_Database::get_setting('prazo_resposta_contestacao_horas'));
         $prazo_analise = intval(GC_Database::get_setting('prazo_analise_resposta_horas'));
+        $prazo_resolucao_disputa = intval(GC_Database::get_setting('prazo_resolucao_disputa_dias'));
         
         $agora = current_time('mysql');
         $prazo_resposta_limite = date('Y-m-d H:i:s', strtotime("-{$prazo_resposta} hours"));
         $prazo_analise_limite = date('Y-m-d H:i:s', strtotime("-{$prazo_analise} hours"));
+        $prazo_votacao_limite = date('Y-m-d H:i:s', strtotime("-{$prazo_resolucao_disputa} days"));
+        
+        $total_processadas = 0;
         
         $pendentes_vencidas = $wpdb->get_results($wpdb->prepare(
             "SELECT c.id, c.lancamento_id FROM $table_name c
@@ -436,6 +488,7 @@ class GC_Contestacao {
             );
             
             GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'contestado');
+            $total_processadas++;
         }
         
         $respondidas_vencidas = $wpdb->get_results($wpdb->prepare(
@@ -452,8 +505,32 @@ class GC_Contestacao {
             );
             
             GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'aceito');
+            $total_processadas++;
         }
         
-        return count($pendentes_vencidas) + count($respondidas_vencidas);
+        $votacao_vencidas = $wpdb->get_results($wpdb->prepare(
+            "SELECT c.id, c.lancamento_id FROM $table_name c
+             WHERE c.estado = 'votacao_aberta' 
+             AND c.data_finalizacao_disputa IS NOT NULL 
+             AND c.data_finalizacao_disputa < %s",
+            $prazo_votacao_limite
+        ));
+        
+        foreach ($votacao_vencidas as $contestacao) {
+            $wpdb->update(
+                $table_name,
+                array(
+                    'estado' => 'expirada',
+                    'data_resolucao_final' => $agora,
+                    'observacoes_finais' => 'Disputa expirada automaticamente por falta de resolução no prazo.'
+                ),
+                array('id' => $contestacao->id)
+            );
+            
+            GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'retificado_comunidade');
+            $total_processadas++;
+        }
+        
+        return $total_processadas;
     }
 }

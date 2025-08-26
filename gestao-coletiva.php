@@ -3,7 +3,7 @@
  * Plugin Name: Gestão Coletiva
  * Plugin URI: https://github.com/quilombociencia/gestao-coletiva
  * Description: Plugin para gestão coletiva de recursos do projeto, permite a arrecadação, gestão e prestação de contas em tempo real.
- * Version: 1.0.2
+ * Version: 1.1.0
  * Author: Quilombo Ciência
  * License: GPL/GNU 3.0
  * Text Domain: gestao-coletiva
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // Define constants
 define('GC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GC_PLUGIN_PATH', plugin_dir_path(__FILE__));
-define('GC_VERSION', '1.0.2');
+define('GC_VERSION', '1.1.0');
 
 // Main plugin class
 class GestaoColetiva {

@@ -32,8 +32,7 @@ class GC_Admin {
         add_action('wp_ajax_gc_finalizar_disputa', array($this, 'ajax_finalizar_disputa'));
         add_action('wp_ajax_gc_registrar_resultado', array($this, 'ajax_registrar_resultado'));
         add_action('wp_ajax_gc_ver_contestacao', array($this, 'ajax_ver_contestacao'));
-        add_action('wp_ajax_gc_corrigir_estados', array($this, 'ajax_corrigir_estados'));
-        add_action('wp_ajax_gc_atualizar_estrutura', array($this, 'ajax_atualizar_estrutura'));
+        add_action('wp_ajax_gc_corrigir_inconsistencias', array($this, 'ajax_corrigir_inconsistencias'));
         
         if (!wp_next_scheduled('gc_processar_vencimentos')) {
             wp_schedule_event(time(), 'hourly', 'gc_processar_vencimentos');
@@ -55,8 +54,8 @@ class GC_Admin {
         
         add_submenu_page(
             'gestao-coletiva',
-            __('Dashboard', 'gestao-coletiva'),
-            __('Dashboard', 'gestao-coletiva'),
+            __('Painel', 'gestao-coletiva'),
+            __('Painel', 'gestao-coletiva'),
             'read',
             'gestao-coletiva',
             array($this, 'dashboard_page')
@@ -343,7 +342,9 @@ class GC_Admin {
             'prazo_analise_resposta_horas',
             'prazo_publicacao_disputa_horas',
             'prazo_resolucao_disputa_dias',
-            'texto_agradecimento_certificado'
+            'texto_agradecimento_certificado',
+            'chave_pix',
+            'nome_beneficiario_pix'
         );
         
         try {
@@ -670,46 +671,27 @@ class GC_Admin {
             'pode_responder' => GC_Contestacao::pode_responder($contestacao_id),
             'pode_analisar' => GC_Contestacao::pode_analisar($contestacao_id),
             'pode_finalizar' => current_user_can('manage_options') && $contestacao->estado === 'em_disputa',
-            'pode_registrar_resultado' => current_user_can('manage_options') && $contestacao->estado === 'disputa_finalizada'
+            'pode_registrar_resultado' => current_user_can('manage_options') && $contestacao->estado === 'votacao_aberta'
         );
         
         wp_send_json_success($dados);
     }
     
-    public function ajax_corrigir_estados() {
+    
+    public function ajax_corrigir_inconsistencias() {
         check_ajax_referer('gc_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
             wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
         }
         
-        $corrigidas = GC_Contestacao::corrigir_estados_rejeitada();
+        $resultado = GC_Contestacao::corrigir_estados_inconsistentes();
         
         $message = sprintf(
-            __('%d contestações foram corrigidas de "rejeitada" para "em_disputa".', 'gestao-coletiva'),
-            $corrigidas
+            __('%d contestações foram corrigidas de %d encontradas com inconsistências.', 'gestao-coletiva'),
+            $resultado['corrigidas'],
+            $resultado['encontradas']
         );
-        
-        wp_send_json_success($message);
-    }
-    
-    public function ajax_atualizar_estrutura() {
-        check_ajax_referer('gc_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
-        }
-        
-        $alteracoes = GC_Database::atualizar_estrutura_contestacoes();
-        
-        if (empty($alteracoes)) {
-            $message = __('Estrutura da tabela já está atualizada.', 'gestao-coletiva');
-        } else {
-            $message = sprintf(
-                __('Estrutura da tabela atualizada. Campos adicionados/alterados: %s', 'gestao-coletiva'),
-                implode(', ', $alteracoes)
-            );
-        }
         
         wp_send_json_success($message);
     }

@@ -548,69 +548,6 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // Corrigir estados de contestação
-    $('#btn-corrigir-estados').on('click', function() {
-        var button = $(this);
-        
-        if (!confirm('Deseja corrigir as contestações com estado incorreto? Esta ação corrigirá contestações "rejeitadas" para "em_disputa".')) {
-            return;
-        }
-        
-        button.prop('disabled', true).text('Corrigindo...');
-        
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'gc_corrigir_estados',
-                nonce: gc_ajax.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    alert(response.data);
-                } else {
-                    alert('Erro: ' + response.data);
-                }
-                button.prop('disabled', false).text('Corrigir Estados de Contestação');
-            },
-            error: function() {
-                alert('Erro ao processar solicitação');
-                button.prop('disabled', false).text('Corrigir Estados de Contestação');
-            }
-        });
-    });
-    
-    // Atualizar estrutura do banco
-    $('#btn-atualizar-estrutura').on('click', function() {
-        var button = $(this);
-        
-        if (!confirm('Deseja atualizar a estrutura da tabela de contestações? Esta ação adicionará novos campos necessários para a funcionalidade de votação.')) {
-            return;
-        }
-        
-        button.prop('disabled', true).text('Atualizando...');
-        
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'gc_atualizar_estrutura',
-                nonce: gc_ajax.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    alert(response.data);
-                } else {
-                    alert('Erro: ' + response.data);
-                }
-                button.prop('disabled', false).text('Atualizar Estrutura do Banco');
-            },
-            error: function() {
-                alert('Erro ao processar solicitação');
-                button.prop('disabled', false).text('Atualizar Estrutura do Banco');
-            }
-        });
-    });
     
     // Limpar dados por período
     $('#btn-limpar-periodo').on('click', function() {
@@ -900,7 +837,13 @@ jQuery(document).ready(function($) {
     }
     
     function gc_exibir_detalhes_contestacao(dados) {
-        console.log('Dados da contestação:', dados);
+        console.log('=== DEBUG CONTESTAÇÃO ===');
+        console.log('Dados completos:', dados);
+        console.log('Estado:', dados.contestacao.estado);
+        console.log('Resultado votação:', dados.contestacao.resultado_votacao);
+        console.log('Data resolução final:', dados.contestacao.data_resolucao_final);
+        console.log('==========================');
+        
         var contestacao = dados.contestacao;
         var lancamento = dados.lancamento;
         
@@ -922,7 +865,40 @@ jQuery(document).ready(function($) {
         html += '<div class="gc-section">';
         html += '<h4>⚖️ Detalhes da Contestação</h4>';
         html += '<p><strong>Tipo:</strong> ' + (contestacao.tipo === 'doacao_nao_contabilizada' ? 'Doação não contabilizada' : 'Despesa não verificada') + '</p>';
-        html += '<p><strong>Estado:</strong> <span class="gc-badge gc-contestacao-' + contestacao.estado + '">' + contestacao.estado.replace('_', ' ').toUpperCase() + '</span></p>';
+        
+        var estado_display = contestacao.estado ? contestacao.estado.replace('_', ' ').toUpperCase() : 'NÃO DEFINIDO';
+        var estado_cor = contestacao.estado ? 'gc-contestacao-' + contestacao.estado : 'gc-contestacao-indefinido';
+        
+        html += '<p><strong>Estado:</strong> <span class="gc-badge ' + estado_cor + '">' + estado_display + '</span></p>';
+        
+        // Detectar possível inconsistência de estado
+        if (!contestacao.estado && lancamento.estado === 'retificado_comunidade') {
+            html += '<div style="background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin: 10px 0; border-radius: 4px;">';
+            html += '<strong>⚠️ Inconsistência Detectada:</strong> O lançamento indica resolução comunitária, mas o estado da contestação não foi registrado adequadamente. ';
+            html += 'Isso pode ter ocorrido devido a uma atualização do sistema. O lançamento foi marcado como "RETIFICADO PELA COMUNIDADE".';
+            html += '</div>';
+        }
+        
+        // Se a disputa foi resolvida, mostrar resultado final
+        if (contestacao.estado === 'disputa_finalizada' && contestacao.resultado_votacao) {
+            var resultado_final = contestacao.resultado_votacao === 'contestacao_procedente' ? 
+                '✅ Contestação foi considerada PROCEDENTE pela comunidade' : 
+                '❌ Contestação foi considerada IMPROCEDENTE pela comunidade';
+            html += '<div style="background: #e8f5e8; border: 1px solid #4caf50; padding: 10px; margin: 10px 0; border-radius: 4px;">';
+            html += '<strong>🏁 Resultado Final:</strong> ' + resultado_final;
+            if (contestacao.observacoes_finais) {
+                html += '<br><strong>Observações:</strong> ' + contestacao.observacoes_finais;
+            }
+            html += '</div>';
+        } else if (contestacao.estado === 'votacao_aberta') {
+            html += '<div style="background: #fff8e1; border: 1px solid #ff9800; padding: 10px; margin: 10px 0; border-radius: 4px;">';
+            html += '<strong>🗳️ Votação Aberta:</strong> Esta disputa foi publicada no blog e está aberta para votação da comunidade.';
+            if (contestacao.data_finalizacao_disputa) {
+                html += '<br><strong>Data de Publicação:</strong> ' + new Date(contestacao.data_finalizacao_disputa).toLocaleDateString('pt-BR');
+            }
+            html += '</div>';
+        }
+        
         html += '<p><strong>Autor da Contestação:</strong> ' + contestacao.autor_nome + '</p>';
         html += '<p><strong>Data da Contestação:</strong> ' + new Date(contestacao.data_criacao).toLocaleDateString('pt-BR') + ' ' + new Date(contestacao.data_criacao).toLocaleTimeString('pt-BR') + '</p>';
         html += '<p><strong>Descrição:</strong></p>';
@@ -964,13 +940,23 @@ jQuery(document).ready(function($) {
             }
         }
         
-        if (contestacao.data_resolucao_final) {
-            html += '<li>🏁 <strong>Disputa resolvida</strong> - ' + new Date(contestacao.data_resolucao_final).toLocaleDateString('pt-BR');
+        if (contestacao.data_resolucao_final || contestacao.estado === 'disputa_resolvida') {
+            var data_resolucao = contestacao.data_resolucao_final ? 
+                new Date(contestacao.data_resolucao_final).toLocaleDateString('pt-BR') : 
+                'Data não registrada';
+            html += '<li>🏁 <strong>Disputa resolvida definitivamente</strong> - ' + data_resolucao;
+            
             if (contestacao.resultado_votacao) {
-                html += '<br><strong>Resultado:</strong> ' + (contestacao.resultado_votacao === 'contestacao_procedente' ? 'Contestação Procedente' : 'Contestação Improcedente');
+                var resultado_texto = contestacao.resultado_votacao === 'contestacao_procedente' ? 
+                    '✅ Contestação Procedente (comunidade considerou que há erro no lançamento)' : 
+                    '❌ Contestação Improcedente (comunidade considerou que lançamento está correto)';
+                html += '<br><strong>🗳️ Resultado da Votação:</strong> ' + resultado_texto;
+            } else {
+                html += '<br><strong>⚠️</strong> Resultado da votação não registrado no sistema';
             }
+            
             if (contestacao.observacoes_finais) {
-                html += '<br><em>' + contestacao.observacoes_finais + '</em>';
+                html += '<br><strong>📝 Observações:</strong> <em>' + contestacao.observacoes_finais + '</em>';
             }
             html += '</li>';
         }
@@ -1001,13 +987,52 @@ jQuery(document).ready(function($) {
             temAcoes = true;
         }
         
-        if (dados.pode_registrar_resultado && contestacao.estado === 'disputa_finalizada') {
+        if (dados.pode_registrar_resultado && contestacao.estado === 'votacao_aberta') {
             html += '<p><button type="button" class="button button-primary gc-registrar-resultado-modal" data-id="' + contestacao.id + '">🗳️ Registrar Resultado da Votação</button></p>';
             html += '<p class="description">Informe o resultado da votação comunitária para encerrar definitivamente a disputa.</p>';
             temAcoes = true;
         }
         
-        if (!temAcoes) {
+        if (contestacao.estado === 'votacao_aberta') {
+            html += '<div style="background: #fff8e1; border: 1px solid #ff9800; padding: 15px; border-radius: 4px;">';
+            html += '<h4 style="margin-top: 0;">🗳️ Votação em Andamento</h4>';
+            html += '<p>A disputa foi publicada e está aberta para votação da comunidade. ';
+            html += 'Use o botão acima para registrar o resultado quando a votação for concluída.</p>';
+            if (contestacao.link_postagem_blog) {
+                html += '<p><a href="' + contestacao.link_postagem_blog + '" target="_blank" class="button button-small">📝 Ver Post no Blog</a> ';
+            }
+            if (contestacao.link_formulario_votacao) {
+                html += '<a href="' + contestacao.link_formulario_votacao + '" target="_blank" class="button button-small">🗳️ Ver Formulário de Votação</a></p>';
+            }
+            html += '</div>';
+        } else if (contestacao.estado === 'disputa_finalizada') {
+            html += '<div style="background: #f0f8ff; border: 1px solid #2196f3; padding: 15px; border-radius: 4px;">';
+            html += '<h4 style="margin-top: 0;">🎯 Processo Concluído</h4>';
+            html += '<p>Esta contestação foi completamente resolvida através de votação comunitária. ';
+            html += 'O resultado final foi aplicado ao lançamento e não são necessárias mais ações.</p>';
+            if (contestacao.link_postagem_blog) {
+                html += '<p><a href="' + contestacao.link_postagem_blog + '" target="_blank" class="button button-small">📝 Ver Post no Blog</a> ';
+            }
+            if (contestacao.link_formulario_votacao) {
+                html += '<a href="' + contestacao.link_formulario_votacao + '" target="_blank" class="button button-small">🗳️ Ver Formulário de Votação</a></p>';
+            }
+            html += '</div>';
+        } else if (contestacao.estado === 'expirada') {
+            html += '<div style="background: #ffeaa7; border: 1px solid #fdcb6e; padding: 15px; border-radius: 4px;">';
+            html += '<h4 style="margin-top: 0;">⏰ Disputa Expirada</h4>';
+            html += '<p>Esta disputa não foi resolvida dentro do prazo estabelecido e foi automaticamente encerrada. ';
+            html += 'O lançamento foi marcado como "RETIFICADO PELA COMUNIDADE" conforme as regras do sistema.</p>';
+            if (contestacao.observacoes_finais) {
+                html += '<p><strong>Observações:</strong> ' + contestacao.observacoes_finais + '</p>';
+            }
+            if (contestacao.link_postagem_blog) {
+                html += '<p><a href="' + contestacao.link_postagem_blog + '" target="_blank" class="button button-small">📝 Ver Post no Blog</a> ';
+            }
+            if (contestacao.link_formulario_votacao) {
+                html += '<a href="' + contestacao.link_formulario_votacao + '" target="_blank" class="button button-small">🗳️ Ver Formulário de Votação</a></p>';
+            }
+            html += '</div>';
+        } else if (!temAcoes) {
             html += '<p><em>Nenhuma ação disponível para o estado atual desta contestação.</em></p>';
         }
         

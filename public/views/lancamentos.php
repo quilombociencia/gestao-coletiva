@@ -72,6 +72,40 @@ if ($action === 'ver' && !empty($numero)) {
                     </div>
                 </div>
                 
+                <!-- Informações PIX para doações -->
+                <?php if ($lancamento->tipo === 'receita'): ?>
+                    <?php 
+                    $chave_pix = GC_Database::get_setting('chave_pix');
+                    $nome_beneficiario = GC_Database::get_setting('nome_beneficiario_pix');
+                    if (!empty($chave_pix)): 
+                    ?>
+                    <div class="gc-pix-container">
+                        <div class="gc-pix-info">
+                            <h4><?php _e('🏦 Informações para Doação via PIX', 'gestao-coletiva'); ?></h4>
+                            <div class="gc-pix-dados">
+                                <div class="gc-pix-item">
+                                    <label><?php _e('Chave PIX:', 'gestao-coletiva'); ?></label>
+                                    <span class="gc-chave-pix" onclick="navigator.clipboard.writeText(this.textContent); alert('Chave PIX copiada!')" style="cursor: pointer; background: #f1f1f1; padding: 5px 8px; border-radius: 3px;"><?php echo esc_html($chave_pix); ?></span>
+                                </div>
+                                <?php if (!empty($nome_beneficiario)): ?>
+                                <div class="gc-pix-item">
+                                    <label><?php _e('Beneficiário:', 'gestao-coletiva'); ?></label>
+                                    <span><?php echo esc_html($nome_beneficiario); ?></span>
+                                </div>
+                                <?php endif; ?>
+                                <div class="gc-pix-item">
+                                    <label><?php _e('Valor:', 'gestao-coletiva'); ?></label>
+                                    <span class="gc-valor gc-positivo">R$ <?php echo number_format($lancamento->valor, 2, ',', '.'); ?></span>
+                                </div>
+                            </div>
+                            <p class="gc-pix-instrucoes">
+                                <?php _e('💡 Clique na chave PIX para copiar automaticamente. Após realizar a transferência, aguarde a confirmação do recebimento.', 'gestao-coletiva'); ?>
+                            </p>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+                
                 <!-- Contador de prazo -->
                 <?php if (!in_array($lancamento->estado, ['efetivado', 'cancelado', 'aceito'])): ?>
                 <div class="gc-prazo-container">
@@ -87,14 +121,22 @@ if ($action === 'ver' && !empty($numero)) {
                 
                 <!-- Ações disponíveis -->
                 <div class="gc-acoes-lancamento">
-                    <?php if ($lancamento->estado === 'efetivado' && $lancamento->tipo === 'receita'): ?>
+                    <?php 
+                    // Estados que permitem gerar certificado
+                    $estados_certificado = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+                    if (in_array($lancamento->estado, $estados_certificado) && $lancamento->tipo === 'receita'): 
+                    ?>
                         <button type="button" class="gc-btn gc-btn-primary gc-gerar-certificado" data-id="<?php echo $lancamento->id; ?>">
                             <span class="gc-icon">🏆</span>
                             <?php _e('Gerar Certificado', 'gestao-coletiva'); ?>
                         </button>
                     <?php endif; ?>
                     
-                    <?php if (is_user_logged_in() && in_array($lancamento->estado, ['efetivado', 'expirado'])): ?>
+                    <?php 
+                    // Estados que podem ser contestados (valores já efetivos mas questionáveis)
+                    $estados_contestaveis = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+                    if (is_user_logged_in() && in_array($lancamento->estado, $estados_contestaveis)): 
+                    ?>
                         <button type="button" class="gc-btn gc-btn-outline gc-abrir-contestacao" data-id="<?php echo $lancamento->id; ?>">
                             <span class="gc-icon">⚠️</span>
                             <?php _e('Contestar', 'gestao-coletiva'); ?>

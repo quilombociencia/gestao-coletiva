@@ -13,7 +13,9 @@ $configuracoes = array(
     'prazo_analise_resposta_horas' => GC_Database::get_setting('prazo_analise_resposta_horas'),
     'prazo_publicacao_disputa_horas' => GC_Database::get_setting('prazo_publicacao_disputa_horas'),
     'prazo_resolucao_disputa_dias' => GC_Database::get_setting('prazo_resolucao_disputa_dias'),
-    'texto_agradecimento_certificado' => GC_Database::get_setting('texto_agradecimento_certificado')
+    'texto_agradecimento_certificado' => GC_Database::get_setting('texto_agradecimento_certificado'),
+    'chave_pix' => GC_Database::get_setting('chave_pix'),
+    'nome_beneficiario_pix' => GC_Database::get_setting('nome_beneficiario_pix')
 );
 ?>
 
@@ -147,6 +149,51 @@ $configuracoes = array(
             </tr>
         </table>
         
+        <h2><?php _e('Configurações PIX', 'gestao-coletiva'); ?></h2>
+        <p class="description">
+            <?php _e('Configure a chave PIX para facilitar as doações ao projeto.', 'gestao-coletiva'); ?>
+        </p>
+        
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="chave_pix">
+                        <?php _e('Chave PIX', 'gestao-coletiva'); ?>
+                    </label>
+                </th>
+                <td>
+                    <input type="text" 
+                           name="chave_pix" 
+                           id="chave_pix" 
+                           value="<?php echo esc_attr($configuracoes['chave_pix']); ?>" 
+                           class="regular-text"
+                           placeholder="<?php _e('exemplo@email.com, CPF, telefone, ou chave aleatória', 'gestao-coletiva'); ?>">
+                    <p class="description">
+                        <?php _e('Informe a chave PIX para recebimento das doações (email, CPF, celular ou chave aleatória).', 'gestao-coletiva'); ?>
+                    </p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    <label for="nome_beneficiario_pix">
+                        <?php _e('Nome do Beneficiário', 'gestao-coletiva'); ?>
+                    </label>
+                </th>
+                <td>
+                    <input type="text" 
+                           name="nome_beneficiario_pix" 
+                           id="nome_beneficiario_pix" 
+                           value="<?php echo esc_attr($configuracoes['nome_beneficiario_pix']); ?>" 
+                           class="regular-text"
+                           placeholder="<?php _e('Nome completo do titular da conta', 'gestao-coletiva'); ?>">
+                    <p class="description">
+                        <?php _e('Nome completo do titular da conta PIX que aparecerá para os doadores.', 'gestao-coletiva'); ?>
+                    </p>
+                </td>
+            </tr>
+        </table>
+        
         <?php submit_button(__('Salvar Configurações', 'gestao-coletiva'), 'primary', 'submit', true, array('id' => 'submit-configuracoes')); ?>
     </form>
     
@@ -184,23 +231,6 @@ $configuracoes = array(
         </span>
     </p>
     
-    <p>
-        <button type="button" id="btn-corrigir-estados" class="button">
-            <?php _e('Corrigir Estados de Contestação', 'gestao-coletiva'); ?>
-        </button>
-        <span class="description">
-            <?php _e('Corrige contestações com estado "rejeitada" que deveriam estar "em_disputa".', 'gestao-coletiva'); ?>
-        </span>
-    </p>
-    
-    <p>
-        <button type="button" id="btn-atualizar-estrutura" class="button">
-            <?php _e('Atualizar Estrutura do Banco', 'gestao-coletiva'); ?>
-        </button>
-        <span class="description">
-            <?php _e('Adiciona campos novos necessários para funcionalidade de votação (resultado_votacao, observacoes_finais, etc.).', 'gestao-coletiva'); ?>
-        </span>
-    </p>
     
     <h3 style="color: #d63638;"><?php _e('⚠️ Zona de Perigo - Limpeza de Dados', 'gestao-coletiva'); ?></h3>
     <div class="notice notice-warning">

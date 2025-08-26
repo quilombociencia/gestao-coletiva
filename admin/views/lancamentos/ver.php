@@ -158,13 +158,21 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                         </button>
                     <?php endif; ?>
                     
-                    <?php if ($lancamento->estado === 'efetivado' && $lancamento->tipo === 'receita'): ?>
+                    <?php 
+                    // Estados que permitem gerar certificado
+                    $estados_certificado = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+                    if (in_array($lancamento->estado, $estados_certificado) && $lancamento->tipo === 'receita'): 
+                    ?>
                         <button type="button" class="button gc-gerar-certificado" data-id="<?php echo $id; ?>">
                             <?php _e('Gerar Certificado', 'gestao-coletiva'); ?>
                         </button>
                     <?php endif; ?>
                     
-                    <?php if (is_user_logged_in() && in_array($lancamento->estado, ['efetivado', 'expirado'])): ?>
+                    <?php 
+                    // Estados que podem ser contestados (valores já efetivos mas questionáveis)
+                    $estados_contestaveis = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+                    if (is_user_logged_in() && in_array($lancamento->estado, $estados_contestaveis)): 
+                    ?>
                         <button type="button" class="button gc-abrir-contestacao" data-id="<?php echo $id; ?>">
                             <?php _e('Contestar', 'gestao-coletiva'); ?>
                         </button>

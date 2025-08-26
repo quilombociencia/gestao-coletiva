@@ -27,6 +27,13 @@ class GC_Admin {
         add_action('wp_ajax_nopriv_gc_buscar_lancamento', array($this, 'ajax_buscar_lancamento'));
         add_action('wp_ajax_gc_gerar_relatorio_periodo', array($this, 'ajax_gerar_relatorio_periodo'));
         add_action('wp_ajax_gc_processar_vencimentos_manual', array($this, 'ajax_processar_vencimentos_manual'));
+        add_action('wp_ajax_gc_limpar_periodo', array($this, 'ajax_limpar_periodo'));
+        add_action('wp_ajax_gc_limpar_tudo', array($this, 'ajax_limpar_tudo'));
+        add_action('wp_ajax_gc_finalizar_disputa', array($this, 'ajax_finalizar_disputa'));
+        add_action('wp_ajax_gc_registrar_resultado', array($this, 'ajax_registrar_resultado'));
+        add_action('wp_ajax_gc_ver_contestacao', array($this, 'ajax_ver_contestacao'));
+        add_action('wp_ajax_gc_corrigir_estados', array($this, 'ajax_corrigir_estados'));
+        add_action('wp_ajax_gc_atualizar_estrutura', array($this, 'ajax_atualizar_estrutura'));
         
         if (!wp_next_scheduled('gc_processar_vencimentos')) {
             wp_schedule_event(time(), 'hourly', 'gc_processar_vencimentos');
@@ -467,5 +474,243 @@ class GC_Admin {
         if ($lancamentos_processados > 0 || $contestacoes_processadas > 0) {
             error_log("Gestão Coletiva: Processados {$lancamentos_processados} lançamentos e {$contestacoes_processadas} contestações vencidas.");
         }
+    }
+    
+    public function ajax_limpar_periodo() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+        }
+        
+        $data_inicial = sanitize_text_field($_POST['data_inicial']);
+        $data_final = sanitize_text_field($_POST['data_final']);
+        
+        if (empty($data_inicial) || empty($data_final)) {
+            wp_send_json_error(__('Datas inicial e final são obrigatórias', 'gestao-coletiva'));
+        }
+        
+        if (strtotime($data_inicial) > strtotime($data_final)) {
+            wp_send_json_error(__('Data inicial não pode ser maior que data final', 'gestao-coletiva'));
+        }
+        
+        $resultado = GC_Database::limpar_lancamentos_periodo($data_inicial, $data_final);
+        
+        if (is_wp_error($resultado)) {
+            wp_send_json_error($resultado->get_error_message());
+        }
+        
+        $message = sprintf(
+            __('Limpeza concluída! %d lançamentos foram removidos do período selecionado.', 'gestao-coletiva'),
+            $resultado['lancamentos_removidos']
+        );
+        
+        wp_send_json_success($message);
+    }
+    
+    public function ajax_limpar_tudo() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+        }
+        
+        $confirmacao = sanitize_text_field($_POST['confirmacao']);
+        
+        if ($confirmacao !== 'confirmar') {
+            wp_send_json_error(__('Confirmação necessária para prosseguir com a limpeza completa', 'gestao-coletiva'));
+        }
+        
+        $resultado = GC_Database::limpar_todos_dados();
+        
+        if (is_wp_error($resultado)) {
+            wp_send_json_error($resultado->get_error_message());
+        }
+        
+        $message = sprintf(
+            __('Limpeza completa realizada! %d registros foram removidos de %d tabelas. As configurações padrão foram restauradas.', 'gestao-coletiva'),
+            $resultado['registros_removidos'],
+            $resultado['tabelas_limpas']
+        );
+        
+        wp_send_json_success($message);
+    }
+    
+    public function ajax_finalizar_disputa() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+        }
+        
+        $contestacao_id = intval($_POST['contestacao_id']);
+        $link_postagem = sanitize_url($_POST['link_postagem']);
+        $link_votacao = sanitize_url($_POST['link_votacao']);
+        
+        if (empty($contestacao_id)) {
+            wp_send_json_error(__('ID da contestação é obrigatório', 'gestao-coletiva'));
+        }
+        
+        if (empty($link_postagem)) {
+            wp_send_json_error(__('Link da postagem no blog é obrigatório', 'gestao-coletiva'));
+        }
+        
+        if (empty($link_votacao)) {
+            wp_send_json_error(__('Link do formulário de votação é obrigatório', 'gestao-coletiva'));
+        }
+        
+        // Validar URLs
+        if (!filter_var($link_postagem, FILTER_VALIDATE_URL)) {
+            wp_send_json_error(__('Link da postagem deve ser uma URL válida', 'gestao-coletiva'));
+        }
+        
+        if (!filter_var($link_votacao, FILTER_VALIDATE_URL)) {
+            wp_send_json_error(__('Link do formulário deve ser uma URL válida', 'gestao-coletiva'));
+        }
+        
+        $resultado = GC_Contestacao::finalizar_disputa($contestacao_id, $link_postagem, $link_votacao);
+        
+        if (is_wp_error($resultado)) {
+            wp_send_json_error($resultado->get_error_message());
+        }
+        
+        wp_send_json_success($resultado['message']);
+    }
+    
+    public function ajax_registrar_resultado() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+        }
+        
+        $contestacao_id = intval($_POST['contestacao_id']);
+        $resultado_votacao = sanitize_text_field($_POST['resultado_votacao']);
+        $observacoes = sanitize_textarea_field($_POST['observacoes']);
+        
+        if (empty($contestacao_id)) {
+            wp_send_json_error(__('ID da contestação é obrigatório', 'gestao-coletiva'));
+        }
+        
+        if (empty($resultado_votacao)) {
+            wp_send_json_error(__('Resultado da votação é obrigatório', 'gestao-coletiva'));
+        }
+        
+        if (!in_array($resultado_votacao, ['contestacao_procedente', 'contestacao_improcedente'])) {
+            wp_send_json_error(__('Resultado da votação é inválido', 'gestao-coletiva'));
+        }
+        
+        $resultado = GC_Contestacao::registrar_resultado_votacao($contestacao_id, $resultado_votacao, $observacoes);
+        
+        if (is_wp_error($resultado)) {
+            wp_send_json_error($resultado->get_error_message());
+        }
+        
+        wp_send_json_success($resultado['message']);
+    }
+    
+    public function ajax_ver_contestacao() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!current_user_can('read')) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+        }
+        
+        $contestacao_id = intval($_POST['contestacao_id']);
+        
+        if (empty($contestacao_id)) {
+            wp_send_json_error(__('ID da contestação é obrigatório', 'gestao-coletiva'));
+        }
+        
+        $contestacao = GC_Contestacao::obter($contestacao_id);
+        
+        if (!$contestacao) {
+            wp_send_json_error(__('Contestação não encontrada', 'gestao-coletiva'));
+        }
+        
+        // Buscar dados do lançamento
+        $lancamento = GC_Lancamento::obter($contestacao->lancamento_id);
+        if (!$lancamento) {
+            wp_send_json_error(__('Lançamento não encontrado', 'gestao-coletiva'));
+        }
+        
+        // Buscar dados do autor da contestação
+        $autor_contestacao = get_user_by('ID', $contestacao->autor_id);
+        $autor_lancamento = get_user_by('ID', $lancamento->autor_id);
+        
+        // Montar dados para resposta
+        $dados = array(
+            'contestacao' => array(
+                'id' => $contestacao->id,
+                'tipo' => $contestacao->tipo,
+                'descricao' => $contestacao->descricao,
+                'comprovante' => $contestacao->comprovante,
+                'estado' => $contestacao->estado,
+                'data_criacao' => $contestacao->data_criacao,
+                'data_resposta' => $contestacao->data_resposta,
+                'data_analise' => $contestacao->data_analise,
+                'data_finalizacao_disputa' => $contestacao->data_finalizacao_disputa,
+                'data_resolucao_final' => $contestacao->data_resolucao_final,
+                'resposta' => $contestacao->resposta,
+                'link_postagem_blog' => $contestacao->link_postagem_blog,
+                'link_formulario_votacao' => $contestacao->link_formulario_votacao,
+                'resultado_votacao' => $contestacao->resultado_votacao,
+                'observacoes_finais' => $contestacao->observacoes_finais,
+                'autor_nome' => $autor_contestacao ? $autor_contestacao->display_name : 'Usuário removido'
+            ),
+            'lancamento' => array(
+                'numero_unico' => $lancamento->numero_unico,
+                'tipo' => $lancamento->tipo,
+                'descricao_curta' => $lancamento->descricao_curta,
+                'valor' => $lancamento->valor,
+                'estado' => $lancamento->estado,
+                'data_criacao' => $lancamento->data_criacao,
+                'autor_nome' => $autor_lancamento ? $autor_lancamento->display_name : 'Usuário removido'
+            ),
+            'pode_responder' => GC_Contestacao::pode_responder($contestacao_id),
+            'pode_analisar' => GC_Contestacao::pode_analisar($contestacao_id),
+            'pode_finalizar' => current_user_can('manage_options') && $contestacao->estado === 'em_disputa',
+            'pode_registrar_resultado' => current_user_can('manage_options') && $contestacao->estado === 'disputa_finalizada'
+        );
+        
+        wp_send_json_success($dados);
+    }
+    
+    public function ajax_corrigir_estados() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+        }
+        
+        $corrigidas = GC_Contestacao::corrigir_estados_rejeitada();
+        
+        $message = sprintf(
+            __('%d contestações foram corrigidas de "rejeitada" para "em_disputa".', 'gestao-coletiva'),
+            $corrigidas
+        );
+        
+        wp_send_json_success($message);
+    }
+    
+    public function ajax_atualizar_estrutura() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+        }
+        
+        $alteracoes = GC_Database::atualizar_estrutura_contestacoes();
+        
+        if (empty($alteracoes)) {
+            $message = __('Estrutura da tabela já está atualizada.', 'gestao-coletiva');
+        } else {
+            $message = sprintf(
+                __('Estrutura da tabela atualizada. Campos adicionados/alterados: %s', 'gestao-coletiva'),
+                implode(', ', $alteracoes)
+            );
+        }
+        
+        wp_send_json_success($message);
     }
 }

@@ -140,7 +140,7 @@ class GC_Contestacao {
             return false;
         }
         
-        $novo_estado = $aceitar ? 'aceita' : 'rejeitada';
+        $novo_estado = $aceitar ? 'aceita' : 'em_disputa';
         
         $update_data = array(
             'estado' => $novo_estado,
@@ -162,6 +162,175 @@ class GC_Contestacao {
         }
         
         return $result;
+    }
+    
+    public static function finalizar_disputa($id, $link_postagem, $link_votacao) {
+        global $wpdb;
+        
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('permission_denied', 'Permissão negada');
+        }
+        
+        $table_name = $wpdb->prefix . 'gc_contestacoes';
+        $contestacao = self::obter($id);
+        
+        if (!$contestacao || $contestacao->estado !== 'em_disputa') {
+            return new WP_Error('invalid_state', 'Contestação deve estar em disputa para ser finalizada');
+        }
+        
+        $update_data = array(
+            'estado' => 'disputa_finalizada',
+            'link_postagem_blog' => esc_url_raw($link_postagem),
+            'link_formulario_votacao' => esc_url_raw($link_votacao),
+            'data_finalizacao_disputa' => current_time('mysql')
+        );
+        
+        $result = $wpdb->update(
+            $table_name,
+            $update_data,
+            array('id' => $id)
+        );
+        
+        if ($result !== false) {
+            // Não alteramos o estado do lançamento aqui - será determinado pela votação
+            // O lançamento permanece em 'em_disputa' até resultado da votação
+            return array(
+                'success' => true,
+                'message' => 'Disputa finalizada com sucesso. Links registrados para votação comunitária.'
+            );
+        }
+        
+        return new WP_Error('db_error', 'Erro ao finalizar disputa');
+    }
+    
+    public static function obter_disputas_pendentes() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_contestacoes';
+        
+        $sql = "SELECT c.*, l.numero_unico, l.descricao_curta as lancamento_descricao, l.valor as lancamento_valor
+                FROM $table_name c
+                JOIN {$wpdb->prefix}gc_lancamentos l ON c.lancamento_id = l.id
+                WHERE c.estado = 'em_disputa'
+                ORDER BY c.data_analise ASC";
+        
+        return $wpdb->get_results($sql);
+    }
+    
+    public static function obter_disputas_finalizadas() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_contestacoes';
+        
+        $sql = "SELECT c.*, l.numero_unico, l.descricao_curta as lancamento_descricao, l.valor as lancamento_valor
+                FROM $table_name c
+                JOIN {$wpdb->prefix}gc_lancamentos l ON c.lancamento_id = l.id
+                WHERE c.estado = 'disputa_finalizada'
+                ORDER BY c.data_finalizacao_disputa ASC";
+        
+        return $wpdb->get_results($sql);
+    }
+    
+    public static function registrar_resultado_votacao($id, $resultado_votacao, $observacoes = '') {
+        global $wpdb;
+        
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('permission_denied', 'Permissão negada');
+        }
+        
+        $table_name = $wpdb->prefix . 'gc_contestacoes';
+        $contestacao = self::obter($id);
+        
+        if (!$contestacao || $contestacao->estado !== 'disputa_finalizada') {
+            return new WP_Error('invalid_state', 'Contestação deve estar com disputa finalizada para registrar resultado');
+        }
+        
+        if (!in_array($resultado_votacao, ['contestacao_procedente', 'contestacao_improcedente'])) {
+            return new WP_Error('invalid_result', 'Resultado de votação inválido');
+        }
+        
+        // Verificar se os campos existem na tabela antes de tentar atualizar
+        $columns = $wpdb->get_results("DESCRIBE $table_name");
+        $column_names = array_column($columns, 'Field');
+        
+        // Debug: log das colunas existentes
+        error_log('Gestão Coletiva - Colunas da tabela contestações: ' . implode(', ', $column_names));
+        
+        $update_data = array(
+            'estado' => 'disputa_resolvida'
+        );
+        
+        // Só adicionar campos que existem na tabela
+        if (in_array('resultado_votacao', $column_names)) {
+            $update_data['resultado_votacao'] = $resultado_votacao;
+        }
+        
+        if (in_array('observacoes_finais', $column_names)) {
+            $update_data['observacoes_finais'] = sanitize_textarea_field($observacoes);
+        }
+        
+        if (in_array('data_resolucao_final', $column_names)) {
+            $update_data['data_resolucao_final'] = current_time('mysql');
+        }
+        
+        $result = $wpdb->update(
+            $table_name,
+            $update_data,
+            array('id' => $id)
+        );
+        
+        if ($result !== false) {
+            // Debug: log do resultado do update
+            error_log('Gestão Coletiva - Update resultado: ' . $result . ' - Dados: ' . print_r($update_data, true));
+            
+            // Atualizar estado do lançamento baseado no resultado da votação
+            if ($resultado_votacao === 'contestacao_procedente') {
+                // Comunidade decidiu que a contestação é procedente
+                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'retificado_comunidade');
+            } else {
+                // Comunidade decidiu que a contestação é improcedente
+                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'contestado_comunidade');
+            }
+            
+            return array(
+                'success' => true,
+                'message' => 'Resultado da votação registrado com sucesso. Disputa foi resolvida definitivamente.'
+            );
+        }
+        
+        // Debug: log do erro
+        error_log('Gestão Coletiva - Erro no update: ' . $wpdb->last_error);
+        
+        return new WP_Error('db_error', 'Erro ao registrar resultado da votação: ' . $wpdb->last_error);
+    }
+    
+    public static function corrigir_estados_rejeitada() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_contestacoes';
+        
+        // Buscar contestações com estado 'rejeitada' que deveriam estar 'em_disputa'
+        $contestacoes_rejeitadas = $wpdb->get_results(
+            "SELECT id, lancamento_id FROM $table_name WHERE estado = 'rejeitada'"
+        );
+        
+        $corrigidas = 0;
+        foreach ($contestacoes_rejeitadas as $contestacao) {
+            // Atualizar contestação para 'em_disputa'
+            $result1 = $wpdb->update(
+                $table_name,
+                array('estado' => 'em_disputa'),
+                array('id' => $contestacao->id)
+            );
+            
+            // Atualizar lançamento para 'em_disputa' se necessário
+            if ($result1 !== false) {
+                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'em_disputa');
+                $corrigidas++;
+            }
+        }
+        
+        return $corrigidas;
     }
     
     public static function pode_responder($contestacao_id, $user_id = null) {

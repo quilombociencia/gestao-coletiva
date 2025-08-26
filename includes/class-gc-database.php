@@ -44,11 +44,17 @@ class GC_Database {
             tipo enum('doacao_nao_contabilizada', 'despesa_nao_verificada') NOT NULL,
             descricao text NOT NULL,
             comprovante text,
-            estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa') DEFAULT 'pendente',
+            estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'disputa_finalizada', 'disputa_resolvida') DEFAULT 'pendente',
             data_criacao datetime NOT NULL,
             data_resposta datetime NULL,
             data_analise datetime NULL,
+            data_finalizacao_disputa datetime NULL,
+            data_resolucao_final datetime NULL,
             resposta text,
+            link_postagem_blog varchar(500) NULL,
+            link_formulario_votacao varchar(500) NULL,
+            resultado_votacao enum('contestacao_procedente', 'contestacao_improcedente') NULL,
+            observacoes_finais text NULL,
             PRIMARY KEY (id),
             KEY lancamento_id (lancamento_id),
             KEY autor_id (autor_id),
@@ -206,5 +212,160 @@ class GC_Database {
         } while ($exists);
         
         return $numero;
+    }
+    
+    public static function limpar_lancamentos_periodo($data_inicial, $data_final) {
+        global $wpdb;
+        
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('permission_denied', 'Permissão negada');
+        }
+        
+        $lancamentos_table = $wpdb->prefix . 'gc_lancamentos';
+        $contestacoes_table = $wpdb->prefix . 'gc_contestacoes';
+        
+        $wpdb->query('START TRANSACTION');
+        
+        try {
+            $lancamentos_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM $lancamentos_table WHERE DATE(data_criacao) BETWEEN %s AND %s",
+                $data_inicial,
+                $data_final
+            ));
+            
+            if (!empty($lancamentos_ids)) {
+                $placeholders = implode(',', array_fill(0, count($lancamentos_ids), '%d'));
+                
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM $contestacoes_table WHERE lancamento_id IN ($placeholders)",
+                    ...$lancamentos_ids
+                ));
+                
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM $lancamentos_table WHERE id IN ($placeholders)",
+                    ...$lancamentos_ids
+                ));
+            }
+            
+            $wpdb->query('COMMIT');
+            
+            return array(
+                'success' => true,
+                'lancamentos_removidos' => count($lancamentos_ids)
+            );
+            
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', 'Erro ao limpar dados: ' . $e->getMessage());
+        }
+    }
+    
+    public static function limpar_todos_dados() {
+        global $wpdb;
+        
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('permission_denied', 'Permissão negada');
+        }
+        
+        $tables = array(
+            $wpdb->prefix . 'gc_contestacoes',
+            $wpdb->prefix . 'gc_lancamentos',
+            $wpdb->prefix . 'gc_relatorios',
+            $wpdb->prefix . 'gc_configuracoes'
+        );
+        
+        $wpdb->query('START TRANSACTION');
+        
+        try {
+            $total_registros = 0;
+            
+            foreach ($tables as $table) {
+                $count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+                $total_registros += intval($count);
+                
+                $wpdb->query("TRUNCATE TABLE $table");
+            }
+            
+            self::insert_default_settings();
+            
+            $wpdb->query('COMMIT');
+            
+            return array(
+                'success' => true,
+                'registros_removidos' => $total_registros,
+                'tabelas_limpas' => count($tables)
+            );
+            
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', 'Erro ao limpar todos os dados: ' . $e->getMessage());
+        }
+    }
+    
+    public static function remover_tabelas_plugin() {
+        global $wpdb;
+        
+        $tables = array(
+            $wpdb->prefix . 'gc_contestacoes',
+            $wpdb->prefix . 'gc_lancamentos', 
+            $wpdb->prefix . 'gc_relatorios',
+            $wpdb->prefix . 'gc_configuracoes'
+        );
+        
+        foreach ($tables as $table) {
+            $wpdb->query("DROP TABLE IF EXISTS $table");
+        }
+        
+        delete_option('gc_installed');
+        delete_option('gc_db_version');
+        delete_option('gc_activation_error');
+        
+        wp_clear_scheduled_hook('gc_processar_vencimentos');
+    }
+    
+    public static function atualizar_estrutura_contestacoes() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_contestacoes';
+        
+        // Verificar se os novos campos existem
+        $columns = $wpdb->get_results("DESCRIBE $table_name");
+        $column_names = array_column($columns, 'Field');
+        
+        $alteracoes_executadas = array();
+        
+        // Adicionar campo data_resolucao_final se não existir
+        if (!in_array('data_resolucao_final', $column_names)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN data_resolucao_final datetime NULL AFTER data_finalizacao_disputa");
+            $alteracoes_executadas[] = 'data_resolucao_final';
+        }
+        
+        // Adicionar campo resultado_votacao se não existir
+        if (!in_array('resultado_votacao', $column_names)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN resultado_votacao enum('contestacao_procedente', 'contestacao_improcedente') NULL AFTER link_formulario_votacao");
+            $alteracoes_executadas[] = 'resultado_votacao';
+        }
+        
+        // Adicionar campo observacoes_finais se não existir
+        if (!in_array('observacoes_finais', $column_names)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN observacoes_finais text NULL AFTER resultado_votacao");
+            $alteracoes_executadas[] = 'observacoes_finais';
+        }
+        
+        // Verificar se o enum de estado inclui 'disputa_resolvida'
+        $estado_column = null;
+        foreach ($columns as $column) {
+            if ($column->Field === 'estado') {
+                $estado_column = $column;
+                break;
+            }
+        }
+        
+        if ($estado_column && strpos($estado_column->Type, 'disputa_resolvida') === false) {
+            $wpdb->query("ALTER TABLE $table_name MODIFY estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'disputa_finalizada', 'disputa_resolvida') DEFAULT 'pendente'");
+            $alteracoes_executadas[] = 'estado_enum_atualizado';
+        }
+        
+        return $alteracoes_executadas;
     }
 }

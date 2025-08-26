@@ -27,6 +27,7 @@ class GestaoColetiva {
         add_action('plugins_loaded', array($this, 'init'));
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+        register_uninstall_hook(__FILE__, array('GestaoColetiva', 'uninstall'));
     }
     
     public function init() {
@@ -293,6 +294,19 @@ class GestaoColetiva {
             echo sprintf(__('Erro na ativação do Gestão Coletiva: %s', 'gestao-coletiva'), esc_html($error));
             echo '</p></div>';
             delete_option('gc_activation_error');
+        }
+    }
+    
+    public static function uninstall() {
+        // Carregar apenas a classe Database para desinstalação
+        $database_file = plugin_dir_path(__FILE__) . 'includes/class-gc-database.php';
+        if (file_exists($database_file)) {
+            require_once $database_file;
+            
+            if (class_exists('GC_Database')) {
+                GC_Database::remover_tabelas_plugin();
+                error_log('Gestão Coletiva: Plugin desinstalado - todas as tabelas e dados removidos');
+            }
         }
     }
 }

@@ -183,6 +183,73 @@ $configuracoes = array(
             <?php _e('Executa manualmente o processamento de lançamentos e contestações vencidas.', 'gestao-coletiva'); ?>
         </span>
     </p>
+    
+    <p>
+        <button type="button" id="btn-corrigir-estados" class="button">
+            <?php _e('Corrigir Estados de Contestação', 'gestao-coletiva'); ?>
+        </button>
+        <span class="description">
+            <?php _e('Corrige contestações com estado "rejeitada" que deveriam estar "em_disputa".', 'gestao-coletiva'); ?>
+        </span>
+    </p>
+    
+    <p>
+        <button type="button" id="btn-atualizar-estrutura" class="button">
+            <?php _e('Atualizar Estrutura do Banco', 'gestao-coletiva'); ?>
+        </button>
+        <span class="description">
+            <?php _e('Adiciona campos novos necessários para funcionalidade de votação (resultado_votacao, observacoes_finais, etc.).', 'gestao-coletiva'); ?>
+        </span>
+    </p>
+    
+    <h3 style="color: #d63638;"><?php _e('⚠️ Zona de Perigo - Limpeza de Dados', 'gestao-coletiva'); ?></h3>
+    <div class="notice notice-warning">
+        <p><strong><?php _e('ATENÇÃO:', 'gestao-coletiva'); ?></strong> <?php _e('As ações abaixo são IRREVERSÍVEIS. Faça backup antes de prosseguir.', 'gestao-coletiva'); ?></p>
+    </div>
+    
+    <table class="form-table">
+        <tr>
+            <th scope="row"><?php _e('Limpar Lançamentos por Período', 'gestao-coletiva'); ?></th>
+            <td>
+                <fieldset>
+                    <label>
+                        <?php _e('Data inicial:', 'gestao-coletiva'); ?> 
+                        <input type="date" id="data-inicial-limpeza" class="regular-text">
+                    </label>
+                    <br><br>
+                    <label>
+                        <?php _e('Data final:', 'gestao-coletiva'); ?> 
+                        <input type="date" id="data-final-limpeza" class="regular-text">
+                    </label>
+                    <br><br>
+                    <button type="button" id="btn-limpar-periodo" class="button button-secondary">
+                        <?php _e('Limpar Lançamentos do Período', 'gestao-coletiva'); ?>
+                    </button>
+                    <p class="description">
+                        <?php _e('Remove todos os lançamentos e contestações relacionadas dentro do período especificado.', 'gestao-coletiva'); ?>
+                    </p>
+                </fieldset>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row"><?php _e('Limpar Todos os Dados', 'gestao-coletiva'); ?></th>
+            <td>
+                <fieldset>
+                    <label>
+                        <input type="checkbox" id="confirmar-limpeza-total"> 
+                        <?php _e('Confirmo que quero apagar TODOS os dados (lançamentos, contestações, relatórios)', 'gestao-coletiva'); ?>
+                    </label>
+                    <br><br>
+                    <button type="button" id="btn-limpar-tudo" class="button button-secondary" disabled>
+                        <?php _e('🗑️ Apagar Todos os Dados', 'gestao-coletiva'); ?>
+                    </button>
+                    <p class="description" style="color: #d63638;">
+                        <?php _e('REMOVE COMPLETAMENTE todas as tabelas e dados do plugin. Esta ação NÃO PODE ser desfeita!', 'gestao-coletiva'); ?>
+                    </p>
+                </fieldset>
+            </td>
+        </tr>
+    </table>
 </div>
 
 <script type="text/javascript">

@@ -14,6 +14,7 @@ class GC_Admin {
         
         // Always register AJAX hooks (they work in both admin and frontend)
         add_action('wp_ajax_gc_criar_lancamento', array($this, 'ajax_criar_lancamento'));
+        add_action('wp_ajax_gc_editar_lancamento', array($this, 'ajax_editar_lancamento'));
         add_action('wp_ajax_gc_atualizar_estado', array($this, 'ajax_atualizar_estado'));
         add_action('wp_ajax_gc_criar_contestacao', array($this, 'ajax_criar_contestacao'));
         add_action('wp_ajax_gc_responder_contestacao', array($this, 'ajax_responder_contestacao'));
@@ -21,17 +22,24 @@ class GC_Admin {
         add_action('wp_ajax_gc_upload_relatorio', array($this, 'ajax_upload_relatorio'));
         add_action('wp_ajax_gc_salvar_configuracoes', array($this, 'ajax_salvar_configuracoes'));
         add_action('wp_ajax_gc_gerar_certificado', array($this, 'ajax_gerar_certificado'));
+        add_action('wp_ajax_nopriv_gc_gerar_certificado', array($this, 'ajax_gerar_certificado'));
+        add_action('wp_ajax_gc_verificar_certificado', array($this, 'ajax_verificar_certificado'));
+        add_action('wp_ajax_nopriv_gc_verificar_certificado', array($this, 'ajax_verificar_certificado'));
         
         add_action('wp_ajax_nopriv_gc_criar_lancamento', array($this, 'ajax_criar_lancamento'));
         add_action('wp_ajax_gc_buscar_lancamento', array($this, 'ajax_buscar_lancamento'));
         add_action('wp_ajax_nopriv_gc_buscar_lancamento', array($this, 'ajax_buscar_lancamento'));
+        add_action('wp_ajax_gc_get_pix_info', array($this, 'ajax_get_pix_info'));
+        add_action('wp_ajax_nopriv_gc_get_pix_info', array($this, 'ajax_get_pix_info'));
         add_action('wp_ajax_gc_gerar_relatorio_periodo', array($this, 'ajax_gerar_relatorio_periodo'));
+        add_action('wp_ajax_gc_gerar_relatorio_previsao', array($this, 'ajax_gerar_relatorio_previsao'));
         add_action('wp_ajax_gc_processar_vencimentos_manual', array($this, 'ajax_processar_vencimentos_manual'));
         add_action('wp_ajax_gc_limpar_periodo', array($this, 'ajax_limpar_periodo'));
         add_action('wp_ajax_gc_limpar_tudo', array($this, 'ajax_limpar_tudo'));
         add_action('wp_ajax_gc_finalizar_disputa', array($this, 'ajax_finalizar_disputa'));
         add_action('wp_ajax_gc_registrar_resultado', array($this, 'ajax_registrar_resultado'));
         add_action('wp_ajax_gc_ver_contestacao', array($this, 'ajax_ver_contestacao'));
+        add_action('wp_ajax_gc_cancelar_recorrencia', array($this, 'ajax_cancelar_recorrencia'));
         add_action('wp_ajax_gc_corrigir_inconsistencias', array($this, 'ajax_corrigir_inconsistencias'));
         
         if (!wp_next_scheduled('gc_processar_vencimentos')) {
@@ -160,6 +168,58 @@ class GC_Admin {
             'recorrencia' => isset($_POST['recorrencia']) ? sanitize_text_field($_POST['recorrencia']) : 'unica'
         );
         
+        // Processar anexos se houver
+        if (isset($_FILES['anexos']) && is_array($_FILES['anexos']['name'])) {
+            error_log('GC Debug: Processando anexos - ' . count($_FILES['anexos']['name']) . ' arquivos encontrados');
+            
+            // Incluir biblioteca de upload do WordPress
+            if (!function_exists('wp_handle_upload')) {
+                require_once(ABSPATH . 'wp-admin/includes/file.php');
+            }
+            
+            $anexos_urls = array();
+            
+            for ($i = 0; $i < count($_FILES['anexos']['name']); $i++) {
+                if ($_FILES['anexos']['error'][$i] === 0) {
+                    // Preparar array de arquivo individual para wp_handle_upload
+                    $arquivo = array(
+                        'name' => $_FILES['anexos']['name'][$i],
+                        'type' => $_FILES['anexos']['type'][$i],
+                        'tmp_name' => $_FILES['anexos']['tmp_name'][$i],
+                        'error' => $_FILES['anexos']['error'][$i],
+                        'size' => $_FILES['anexos']['size'][$i]
+                    );
+                    
+                    $upload = wp_handle_upload($arquivo, array(
+                        'test_form' => false,
+                        'mimes' => array(
+                            'pdf' => 'application/pdf',
+                            'jpg|jpeg' => 'image/jpeg',
+                            'png' => 'image/png',
+                            'gif' => 'image/gif'
+                        ),
+                        'unique_filename_callback' => function($dir, $name, $ext) {
+                            return 'gc_' . time() . '_' . wp_generate_uuid4() . $ext;
+                        }
+                    ));
+                    
+                    if ($upload && !isset($upload['error'])) {
+                        $anexos_urls[] = $upload['url'];
+                        error_log('GC Debug: Anexo carregado com sucesso: ' . $upload['url']);
+                    } else {
+                        error_log('GC Debug: Erro no upload: ' . print_r($upload, true));
+                    }
+                }
+            }
+            
+            if (!empty($anexos_urls)) {
+                $dados['anexos'] = $anexos_urls;
+                error_log('GC Debug: ' . count($anexos_urls) . ' anexos serão salvos no lançamento');
+            }
+        } else {
+            error_log('GC Debug: Nenhum arquivo $_FILES[anexos] encontrado ou não é array');
+        }
+        
         try {
             $resultado = GC_Lancamento::criar($dados);
             
@@ -179,6 +239,129 @@ class GC_Admin {
         } catch (Exception $e) {
             error_log('Gestão Coletiva - Exceção ao criar lançamento: ' . $e->getMessage());
             wp_send_json_error(__('Erro ao criar lançamento', 'gestao-coletiva') . ': ' . $e->getMessage());
+        }
+    }
+    
+    public function ajax_editar_lancamento() {
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'gc_nonce')) {
+            wp_send_json_error(__('Nonce inválido', 'gestao-coletiva'));
+            return;
+        }
+        
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+            return;
+        }
+        
+        if (!class_exists('GC_Lancamento')) {
+            wp_send_json_error(__('Sistema indisponível. Contate o administrador.', 'gestao-coletiva'));
+            return;
+        }
+        
+        $lancamento_id = intval($_POST['lancamento_id']);
+        
+        // Verificar se o lançamento existe
+        $lancamento = GC_Lancamento::obter($lancamento_id);
+        if (!$lancamento) {
+            wp_send_json_error(__('Lançamento não encontrado.', 'gestao-coletiva'));
+            return;
+        }
+        
+        // Verificar permissões de edição
+        if (!GC_Lancamento::pode_editar($lancamento_id)) {
+            wp_send_json_error(__('Você não tem permissão para editar este lançamento.', 'gestao-coletiva'));
+            return;
+        }
+        
+        $dados_atualizacao = array(
+            'tipo' => sanitize_text_field($_POST['tipo']),
+            'descricao_curta' => sanitize_text_field($_POST['descricao_curta']),
+            'descricao_detalhada' => sanitize_textarea_field($_POST['descricao_detalhada']),
+            'valor' => floatval($_POST['valor']),
+            'recorrencia' => isset($_POST['recorrencia']) ? sanitize_text_field($_POST['recorrencia']) : $lancamento->recorrencia
+        );
+        
+        // Processar anexos existentes (remoções)
+        $anexos_atuais = $lancamento->anexos ? (is_array($lancamento->anexos) ? $lancamento->anexos : json_decode($lancamento->anexos, true)) : array();
+        $remover_anexos = isset($_POST['remover_anexos']) ? array_map('intval', $_POST['remover_anexos']) : array();
+        
+        // Remover anexos selecionados
+        foreach ($remover_anexos as $indice) {
+            if (isset($anexos_atuais[$indice])) {
+                unset($anexos_atuais[$indice]);
+            }
+        }
+        
+        // Reindexar array
+        $anexos_atuais = array_values($anexos_atuais);
+        
+        // Processar novos anexos
+        if (isset($_FILES['novos_anexos']) && is_array($_FILES['novos_anexos']['name'])) {
+            error_log('GC Debug editar: Processando ' . count($_FILES['novos_anexos']['name']) . ' novos anexos');
+            
+            // Incluir biblioteca de upload do WordPress
+            if (!function_exists('wp_handle_upload')) {
+                require_once(ABSPATH . 'wp-admin/includes/file.php');
+            }
+            
+            for ($i = 0; $i < count($_FILES['novos_anexos']['name']); $i++) {
+                if ($_FILES['novos_anexos']['error'][$i] === 0) {
+                    // Preparar array de arquivo individual para wp_handle_upload
+                    $arquivo = array(
+                        'name' => $_FILES['novos_anexos']['name'][$i],
+                        'type' => $_FILES['novos_anexos']['type'][$i],
+                        'tmp_name' => $_FILES['novos_anexos']['tmp_name'][$i],
+                        'error' => $_FILES['novos_anexos']['error'][$i],
+                        'size' => $_FILES['novos_anexos']['size'][$i]
+                    );
+                    
+                    $upload = wp_handle_upload($arquivo, array(
+                        'test_form' => false,
+                        'mimes' => array(
+                            'pdf' => 'application/pdf',
+                            'jpg|jpeg' => 'image/jpeg',
+                            'png' => 'image/png',
+                            'gif' => 'image/gif'
+                        ),
+                        'unique_filename_callback' => function($dir, $name, $ext) {
+                            return 'gc_' . time() . '_' . wp_generate_uuid4() . $ext;
+                        }
+                    ));
+                    
+                    if ($upload && !isset($upload['error'])) {
+                        $anexos_atuais[] = $upload['url'];
+                        error_log('GC Debug editar: Novo anexo adicionado: ' . $upload['url']);
+                    } else {
+                        error_log('GC Debug editar: Erro no upload: ' . print_r($upload, true));
+                    }
+                }
+            }
+        }
+        
+        // Atualizar anexos se houver
+        if (!empty($anexos_atuais)) {
+            $dados_atualizacao['anexos'] = $anexos_atuais;
+        } else {
+            $dados_atualizacao['anexos'] = null;
+        }
+        
+        try {
+            $resultado = GC_Lancamento::atualizar($lancamento_id, $dados_atualizacao);
+            
+            if (is_wp_error($resultado)) {
+                wp_send_json_error($resultado->get_error_message());
+            } else {
+                wp_send_json_success(array(
+                    'id' => $lancamento_id,
+                    'message' => __('Lançamento atualizado com sucesso!', 'gestao-coletiva')
+                ));
+            }
+        } catch (Error $e) {
+            error_log('Gestão Coletiva - Erro ao editar lançamento: ' . $e->getMessage());
+            wp_send_json_error(__('Erro ao editar lançamento', 'gestao-coletiva') . ': ' . $e->getMessage());
+        } catch (Exception $e) {
+            error_log('Gestão Coletiva - Exceção ao editar lançamento: ' . $e->getMessage());
+            wp_send_json_error(__('Erro ao editar lançamento', 'gestao-coletiva') . ': ' . $e->getMessage());
         }
     }
     
@@ -337,6 +520,7 @@ class GC_Admin {
         }
         
         $configuracoes = array(
+            'logo_url',
             'prazo_efetivacao_horas',
             'prazo_resposta_contestacao_horas',
             'prazo_analise_resposta_horas',
@@ -369,6 +553,20 @@ class GC_Admin {
         }
         
         $id = intval($_POST['id']);
+        $lancamento = GC_Lancamento::obter($id);
+        
+        if (!$lancamento) {
+            wp_send_json_error(__('Lançamento não encontrado', 'gestao-coletiva'));
+        }
+        
+        // Verificar permissões: apenas autor da doação ou administradores
+        $user_id = get_current_user_id();
+        $pode_gerar = ($lancamento->autor_id == $user_id) || current_user_can('manage_options');
+        
+        if (!$pode_gerar) {
+            wp_send_json_error(__('Você não tem permissão para gerar este certificado', 'gestao-coletiva'));
+        }
+        
         $certificado = GC_Lancamento::gerar_certificado($id);
         
         if (!$certificado) {
@@ -376,6 +574,48 @@ class GC_Admin {
         }
         
         wp_send_json_success($certificado);
+    }
+    
+    public function ajax_verificar_certificado() {
+        if (!isset($_POST['numero_unico'])) {
+            wp_send_json_error(__('Número do certificado não informado', 'gestao-coletiva'));
+        }
+        
+        $numero_unico = sanitize_text_field($_POST['numero_unico']);
+        
+        if (empty($numero_unico)) {
+            wp_send_json_error(__('Número do certificado não informado', 'gestao-coletiva'));
+        }
+        
+        // Buscar lançamento pelo número único
+        $lancamento = GC_Lancamento::obter_por_numero($numero_unico);
+        
+        if (!$lancamento) {
+            wp_send_json_error(__('Certificado não encontrado', 'gestao-coletiva'));
+        }
+        
+        // Verificar se o lançamento permite gerar certificado
+        $certificado = GC_Lancamento::gerar_certificado($lancamento->id);
+        
+        if (!$certificado) {
+            wp_send_json_error(__('Certificado não disponível para este lançamento', 'gestao-coletiva'));
+        }
+        
+        // Retornar dados do certificado para verificação
+        $verificacao = array(
+            'valido' => true,
+            'numero_unico' => $certificado['numero_unico'],
+            'autor' => $certificado['autor'],
+            'valor' => $certificado['valor'],
+            'data_efetivacao' => $certificado['data_efetivacao'],
+            'tipo' => $certificado['tipo'],
+            'descricao_curta' => $certificado['descricao_curta'],
+            'recorrencia' => $certificado['recorrencia'],
+            'recorrencia_ativa' => $certificado['recorrencia_ativa'],
+            'organizacao' => $certificado['organizacao']
+        );
+        
+        wp_send_json_success($verificacao);
     }
     
     public function ajax_buscar_lancamento() {
@@ -404,23 +644,63 @@ class GC_Admin {
                 return;
             }
             
-            $autor = get_user_by('ID', $lancamento->autor_id);
-            
-            $html = '<div class="gc-lancamento-encontrado">';
-            $html .= '<h3>Lançamento #' . esc_html($lancamento->numero_unico) . '</h3>';
-            $html .= '<p><strong>Tipo:</strong> ' . (($lancamento->tipo == 'receita') ? 'Receita' : 'Despesa') . '</p>';
-            $html .= '<p><strong>Estado:</strong> ' . esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))) . '</p>';
-            $html .= '<p><strong>Valor:</strong> R$ ' . number_format($lancamento->valor, 2, ',', '.') . '</p>';
-            $html .= '<p><strong>Descrição:</strong> ' . esc_html($lancamento->descricao_curta) . '</p>';
-            $html .= '<p><strong>Data:</strong> ' . date('d/m/Y H:i', strtotime($lancamento->data_criacao)) . '</p>';
-            if ($autor) {
-                $html .= '<p><strong>Autor:</strong> ' . esc_html($autor->display_name) . '</p>';
+            // Decodificar anexos se existir
+            if ($lancamento->anexos && is_string($lancamento->anexos)) {
+                $lancamento->anexos = json_decode($lancamento->anexos, true);
             }
-            $html .= '</div>';
+            if (!is_array($lancamento->anexos)) {
+                $lancamento->anexos = array();
+            }
             
-            wp_send_json_success($html);
+            // Verificar permissões para ações
+            $estados_certificado = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+            $user_id = get_current_user_id();
+            $eh_autor = ($lancamento->autor_id == $user_id);
+            $eh_admin = current_user_can('manage_options');
+            $pode_gerar_certificado = in_array($lancamento->estado, $estados_certificado) && 
+                                    $lancamento->tipo === 'receita' && 
+                                    ($eh_autor || $eh_admin);
+            
+            $estados_contestaveis = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+            $pode_contestar = is_user_logged_in() && in_array($lancamento->estado, $estados_contestaveis);
+            
+            // Dados estruturados para o JavaScript
+            $dados = array(
+                'id' => $lancamento->id,
+                'numero_unico' => $lancamento->numero_unico,
+                'tipo' => $lancamento->tipo,
+                'estado' => $lancamento->estado,
+                'valor' => $lancamento->valor,
+                'descricao_curta' => $lancamento->descricao_curta,
+                'descricao_detalhada' => $lancamento->descricao_detalhada,
+                'data_criacao' => $lancamento->data_criacao,
+                'data_efetivacao' => $lancamento->data_efetivacao,
+                'anexos' => $lancamento->anexos,
+                'pode_gerar_certificado' => $pode_gerar_certificado,
+                'pode_contestar' => $pode_contestar
+            );
+            
+            wp_send_json_success($dados);
         } catch (Error $e) {
             wp_send_json_error(__('Erro ao buscar lançamento. Contate o administrador.', 'gestao-coletiva'));
+        }
+    }
+    
+    public function ajax_get_pix_info() {
+        // Não precisa verificar nonce para informações PIX públicas
+        
+        try {
+            $chave_pix = GC_Database::get_setting('chave_pix');
+            $nome_beneficiario = GC_Database::get_setting('nome_beneficiario_pix');
+            
+            $data = array(
+                'chave_pix' => $chave_pix,
+                'nome_beneficiario' => $nome_beneficiario
+            );
+            
+            wp_send_json_success($data);
+        } catch (Error $e) {
+            wp_send_json_error(__('Erro ao buscar informações PIX.', 'gestao-coletiva'));
         }
     }
     
@@ -449,6 +729,26 @@ class GC_Admin {
         wp_send_json_success($html);
     }
     
+    public function ajax_gerar_relatorio_previsao() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        $data_inicio = sanitize_text_field($_POST['data_inicio']);
+        $data_fim = sanitize_text_field($_POST['data_fim']);
+        
+        if (empty($data_inicio) || empty($data_fim)) {
+            wp_send_json_error(__('Datas não informadas', 'gestao-coletiva'));
+        }
+        
+        $relatorio = GC_Relatorio::gerar_relatorio_previsao($data_inicio . ' 00:00:00', $data_fim . ' 23:59:59');
+        
+        // Renderizar HTML do relatório
+        ob_start();
+        include GC_PLUGIN_PATH . 'admin/views/relatorios/previsao.php';
+        $html = ob_get_clean();
+        
+        wp_send_json_success($html);
+    }
+    
     public function ajax_processar_vencimentos_manual() {
         check_ajax_referer('gc_nonce', 'nonce');
         
@@ -457,11 +757,13 @@ class GC_Admin {
         }
         
         $lancamentos_processados = GC_Lancamento::processar_vencimentos();
+        $recorrencias_criadas = GC_Lancamento::processar_recorrencias();
         $contestacoes_processadas = GC_Contestacao::processar_vencimentos();
         
         $message = sprintf(
-            __('Processamento concluído! %d lançamentos e %d contestações foram processados.', 'gestao-coletiva'),
+            __('Processamento concluído! %d lançamentos processados, %d recorrências criadas e %d contestações processadas.', 'gestao-coletiva'),
             $lancamentos_processados,
+            $recorrencias_criadas,
             $contestacoes_processadas
         );
         
@@ -470,10 +772,11 @@ class GC_Admin {
     
     public function processar_vencimentos_cron() {
         $lancamentos_processados = GC_Lancamento::processar_vencimentos();
+        $recorrencias_criadas = GC_Lancamento::processar_recorrencias();
         $contestacoes_processadas = GC_Contestacao::processar_vencimentos();
         
-        if ($lancamentos_processados > 0 || $contestacoes_processadas > 0) {
-            error_log("Gestão Coletiva: Processados {$lancamentos_processados} lançamentos e {$contestacoes_processadas} contestações vencidas.");
+        if ($lancamentos_processados > 0 || $recorrencias_criadas > 0 || $contestacoes_processadas > 0) {
+            error_log("Gestão Coletiva: Processados {$lancamentos_processados} lançamentos, {$recorrencias_criadas} recorrências criadas e {$contestacoes_processadas} contestações vencidas.");
         }
     }
     
@@ -677,6 +980,41 @@ class GC_Admin {
         wp_send_json_success($dados);
     }
     
+    public function ajax_cancelar_recorrencia() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        $lancamento_id = intval($_POST['id']);
+        
+        if (!$lancamento_id) {
+            wp_send_json_error(__('ID do lançamento não fornecido', 'gestao-coletiva'));
+            return;
+        }
+        
+        $lancamento = GC_Lancamento::obter($lancamento_id);
+        if (!$lancamento) {
+            wp_send_json_error(__('Lançamento não encontrado', 'gestao-coletiva'));
+            return;
+        }
+        
+        // Verificar permissões: autor do lançamento ou administrador
+        if (!current_user_can('manage_options') && $lancamento->autor_id != get_current_user_id()) {
+            wp_send_json_error(__('Você não tem permissão para cancelar esta recorrência', 'gestao-coletiva'));
+            return;
+        }
+        
+        if ($lancamento->recorrencia === 'unica') {
+            wp_send_json_error(__('Este lançamento não é recorrente', 'gestao-coletiva'));
+            return;
+        }
+        
+        $resultado = GC_Lancamento::cancelar_recorrencia($lancamento_id);
+        
+        if ($resultado) {
+            wp_send_json_success(__('Recorrência cancelada com sucesso', 'gestao-coletiva'));
+        } else {
+            wp_send_json_error(__('Erro ao cancelar recorrência', 'gestao-coletiva'));
+        }
+    }
     
     public function ajax_corrigir_inconsistencias() {
         check_ajax_referer('gc_nonce', 'nonce');

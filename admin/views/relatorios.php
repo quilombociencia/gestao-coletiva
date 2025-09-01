@@ -13,33 +13,90 @@ $relatorios_anuais = GC_Relatorio::listar('anual');
 ?>
 
 <div class="wrap">
-    <h1>
-        <?php _e('Relatórios', 'gestao-coletiva'); ?>
-        <?php if (current_user_can('manage_options')): ?>
-        <a href="#" class="page-title-action" id="btn-upload-relatorio">
+    <div class="gc-header-admin">
+        <?php $logo_url = GC_Database::get_setting('logo_url'); ?>
+        <?php if (!empty($logo_url)): ?>
+            <div class="gc-logo-admin">
+                <img src="<?php echo esc_url($logo_url); ?>" alt="<?php _e('Logo da Organização', 'gestao-coletiva'); ?>" class="gc-admin-logo">
+            </div>
+        <?php endif; ?>
+        <h1>
+            <?php _e('Relatórios', 'gestao-coletiva'); ?>
+            <?php if (current_user_can('manage_options')): ?>
+            <a href="#" class="page-title-action" id="btn-upload-relatorio">
             <?php _e('Incluir Relatório', 'gestao-coletiva'); ?>
         </a>
         <?php endif; ?>
-    </h1>
+        </h1>
+    </div>
     
-    <!-- Livro Caixa -->
-    <div class="gc-livro-caixa">
-        <h2><?php _e('Livro Caixa', 'gestao-coletiva'); ?></h2>
-        
-        <form id="gc-form-periodo" class="gc-form-inline">
-            <label for="data_inicio"><?php _e('Data Inicial:', 'gestao-coletiva'); ?></label>
-            <input type="date" id="data_inicio" name="data_inicio" value="<?php echo date('Y-m-01'); ?>">
-            
-            <label for="data_fim"><?php _e('Data Final:', 'gestao-coletiva'); ?></label>
-            <input type="date" id="data_fim" name="data_fim" value="<?php echo date('Y-m-t'); ?>">
-            
-            <button type="button" id="btn-gerar-relatorio" class="button">
-                <?php _e('Gerar Relatório', 'gestao-coletiva'); ?>
+    <!-- Relatórios Dinâmicos -->
+    <div class="gc-relatorios-dinamicos">
+        <!-- Tabs -->
+        <div class="gc-tabs">
+            <button class="gc-tab-btn active" data-tab="historico">
+                📊 Livro Caixa Histórico
             </button>
-        </form>
+            <button class="gc-tab-btn" data-tab="previsao">
+                🔮 Relatório de Previsão
+            </button>
+        </div>
         
-        <div id="relatorio-periodo" class="gc-relatorio-periodo" style="display: none;">
-            <!-- Conteúdo será carregado via AJAX -->
+        <!-- Tab Histórico -->
+        <div id="tab-historico" class="gc-tab-content active">
+            <h3><?php _e('Livro Caixa Histórico', 'gestao-coletiva'); ?></h3>
+            <p><?php _e('Relatório baseado em lançamentos já realizados e confirmados.', 'gestao-coletiva'); ?></p>
+            
+            <form id="gc-form-periodo" class="gc-form-inline">
+                <label for="data_inicio"><?php _e('Data Inicial:', 'gestao-coletiva'); ?></label>
+                <input type="date" id="data_inicio" name="data_inicio" value="<?php echo date('Y-m-01'); ?>">
+                
+                <label for="data_fim"><?php _e('Data Final:', 'gestao-coletiva'); ?></label>
+                <input type="date" id="data_fim" name="data_fim" value="<?php echo date('Y-m-t'); ?>">
+                
+                <button type="button" id="btn-gerar-relatorio" class="button">
+                    <?php _e('Gerar Relatório', 'gestao-coletiva'); ?>
+                </button>
+            </form>
+            
+            <div id="relatorio-periodo" class="gc-relatorio-periodo" style="display: none;">
+                <!-- Conteúdo será carregado via AJAX -->
+            </div>
+        </div>
+        
+        <!-- Tab Previsão -->
+        <div id="tab-previsao" class="gc-tab-content">
+            <h3><?php _e('Relatório de Previsão', 'gestao-coletiva'); ?></h3>
+            <p><?php _e('Relatório incluindo lançamentos previstos e recorrências futuras. Ideal para planejamento financeiro.', 'gestao-coletiva'); ?></p>
+            
+            <form id="gc-form-previsao" class="gc-form-inline">
+                <label for="data_inicio_prev"><?php _e('Data Inicial:', 'gestao-coletiva'); ?></label>
+                <input type="date" id="data_inicio_prev" name="data_inicio" value="<?php echo date('Y-m-01'); ?>">
+                
+                <label for="data_fim_prev"><?php _e('Data Final:', 'gestao-coletiva'); ?></label>
+                <input type="date" id="data_fim_prev" name="data_fim" value="<?php echo date('Y-m-t', strtotime('+3 months')); ?>">
+                
+                <div class="gc-presets">
+                    <label><?php _e('Períodos rápidos:', 'gestao-coletiva'); ?></label>
+                    <button type="button" class="button button-small gc-preset-periodo" data-meses="3">
+                        <?php _e('Próximos 3 meses', 'gestao-coletiva'); ?>
+                    </button>
+                    <button type="button" class="button button-small gc-preset-periodo" data-meses="6">
+                        <?php _e('Próximos 6 meses', 'gestao-coletiva'); ?>
+                    </button>
+                    <button type="button" class="button button-small gc-preset-periodo" data-meses="12">
+                        <?php _e('Próximo ano', 'gestao-coletiva'); ?>
+                    </button>
+                </div>
+                
+                <button type="button" id="btn-gerar-previsao" class="button button-primary">
+                    <?php _e('Gerar Previsão', 'gestao-coletiva'); ?>
+                </button>
+            </form>
+            
+            <div id="relatorio-previsao" class="gc-relatorio-previsao-container" style="display: none;">
+                <!-- Conteúdo será carregado via AJAX -->
+            </div>
         </div>
     </div>
     

@@ -8,6 +8,7 @@ if (!current_user_can('manage_options')) {
 }
 
 $configuracoes = array(
+    'logo_url' => GC_Database::get_setting('logo_url'),
     'prazo_efetivacao_horas' => GC_Database::get_setting('prazo_efetivacao_horas'),
     'prazo_resposta_contestacao_horas' => GC_Database::get_setting('prazo_resposta_contestacao_horas'),
     'prazo_analise_resposta_horas' => GC_Database::get_setting('prazo_analise_resposta_horas'),
@@ -24,6 +25,50 @@ $configuracoes = array(
     
     <form id="gc-form-configuracoes" method="post">
         <?php wp_nonce_field('gc_nonce', 'gc_nonce'); ?>
+        
+        <h2><?php _e('Identidade Visual', 'gestao-coletiva'); ?></h2>
+        <p class="description">
+            <?php _e('Configure a aparência e identidade visual do sistema.', 'gestao-coletiva'); ?>
+        </p>
+        
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="logo_url">
+                        <?php _e('Logo da Organização', 'gestao-coletiva'); ?>
+                    </label>
+                </th>
+                <td>
+                    <div class="gc-logo-upload">
+                        <div class="gc-logo-preview">
+                            <?php if (!empty($configuracoes['logo_url'])): ?>
+                                <img src="<?php echo esc_url($configuracoes['logo_url']); ?>" alt="Logo atual" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; padding: 10px;">
+                            <?php else: ?>
+                                <div class="gc-no-logo" style="width: 200px; height: 100px; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center; color: #666;">
+                                    <?php _e('Nenhum logo selecionado', 'gestao-coletiva'); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="gc-logo-actions" style="margin-top: 10px;">
+                            <input type="hidden" id="logo_url" name="logo_url" value="<?php echo esc_attr($configuracoes['logo_url']); ?>">
+                            <button type="button" id="btn-selecionar-logo" class="button">
+                                <?php _e('Selecionar Logo', 'gestao-coletiva'); ?>
+                            </button>
+                            <?php if (!empty($configuracoes['logo_url'])): ?>
+                                <button type="button" id="btn-remover-logo" class="button">
+                                    <?php _e('Remover Logo', 'gestao-coletiva'); ?>
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <p class="description">
+                            <?php _e('Recomendado: PNG ou JPG, máximo 300x150px. O logo será usado nos certificados e cabeçalhos administrativos.', 'gestao-coletiva'); ?>
+                        </p>
+                    </div>
+                </td>
+            </tr>
+        </table>
         
         <h2><?php _e('Prazos do Sistema', 'gestao-coletiva'); ?></h2>
         <p class="description">
@@ -284,6 +329,61 @@ $configuracoes = array(
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
+    // Seletor de mídia para logo
+    var gc_media_uploader;
+    
+    $('#btn-selecionar-logo').on('click', function(e) {
+        e.preventDefault();
+        
+        // Se o uploader já existe, reabre
+        if (gc_media_uploader) {
+            gc_media_uploader.open();
+            return;
+        }
+        
+        // Cria o seletor de mídia
+        gc_media_uploader = wp.media({
+            title: '<?php _e("Selecionar Logo", "gestao-coletiva"); ?>',
+            button: {
+                text: '<?php _e("Usar esta imagem", "gestao-coletiva"); ?>'
+            },
+            library: {
+                type: 'image'
+            },
+            multiple: false
+        });
+        
+        // Quando uma imagem for selecionada
+        gc_media_uploader.on('select', function() {
+            var attachment = gc_media_uploader.state().get('selection').first().toJSON();
+            
+            // Atualizar campo hidden
+            $('#logo_url').val(attachment.url);
+            
+            // Atualizar preview
+            $('.gc-logo-preview').html('<img src="' + attachment.url + '" alt="Logo selecionado" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; padding: 10px;">');
+            
+            // Mostrar botão remover se não existe
+            if (!$('#btn-remover-logo').length) {
+                $('.gc-logo-actions').append('<button type="button" id="btn-remover-logo" class="button"><?php _e("Remover Logo", "gestao-coletiva"); ?></button>');
+            }
+        });
+        
+        // Abre o seletor
+        gc_media_uploader.open();
+    });
+    
+    // Remover logo
+    $(document).on('click', '#btn-remover-logo', function(e) {
+        e.preventDefault();
+        
+        if (confirm('<?php _e("Tem certeza que deseja remover o logo?", "gestao-coletiva"); ?>')) {
+            $('#logo_url').val('');
+            $('.gc-logo-preview').html('<div class="gc-no-logo" style="width: 200px; height: 100px; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center; color: #666;"><?php _e("Nenhum logo selecionado", "gestao-coletiva"); ?></div>');
+            $(this).remove();
+        }
+    });
+    
     // Salvar configurações
     $('#gc-form-configuracoes').on('submit', function(e) {
         e.preventDefault();

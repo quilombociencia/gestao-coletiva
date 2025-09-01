@@ -123,6 +123,12 @@ $lancamentos = GC_Lancamento::listar($filtros);
                         <?php _e('Ver', 'gestao-coletiva'); ?>
                     </a>
                     
+                    <?php if (!empty($lancamento->anexos) && is_array($lancamento->anexos) && count($lancamento->anexos) > 0): ?>
+                        <a href="<?php echo esc_url($lancamento->anexos[0]); ?>" target="_blank" class="button button-small" title="<?php echo count($lancamento->anexos) > 1 ? sprintf(__('%d anexos', 'gestao-coletiva'), count($lancamento->anexos)) : __('1 anexo', 'gestao-coletiva'); ?>">
+                            <?php _e('Anexos', 'gestao-coletiva'); ?> (<?php echo count($lancamento->anexos); ?>)
+                        </a>
+                    <?php endif; ?>
+                    
                     <?php if (GC_Lancamento::pode_editar($lancamento->id)): ?>
                         <a href="<?php echo admin_url('admin.php?page=gc-lancamentos&action=editar&id=' . $lancamento->id); ?>" class="button button-small">
                             <?php _e('Editar', 'gestao-coletiva'); ?>

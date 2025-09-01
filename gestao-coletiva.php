@@ -3,7 +3,7 @@
  * Plugin Name: Gestão Coletiva
  * Plugin URI: https://github.com/quilombociencia/gestao-coletiva
  * Description: Plugin para gestão coletiva de recursos do projeto, permite a arrecadação, gestão e prestação de contas em tempo real.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Quilombo Ciência
  * License: GPL/GNU 3.0
  * Text Domain: gestao-coletiva
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 // Define constants
 define('GC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('GC_PLUGIN_PATH', plugin_dir_path(__FILE__));
-define('GC_VERSION', '1.1.0');
+define('GC_VERSION', '1.1.1');
 
 // Main plugin class
 class GestaoColetiva {
@@ -168,6 +168,14 @@ class GestaoColetiva {
                 GC_Database::create_tables();
                 GC_Database::insert_default_settings();
                 
+                // Executar migrações de estrutura
+                $alteracoes_lancamentos = GC_Database::atualizar_estrutura_lancamentos();
+                $alteracoes_contestacoes = GC_Database::atualizar_estrutura_contestacoes();
+                
+                if (!empty($alteracoes_lancamentos) || !empty($alteracoes_contestacoes)) {
+                    error_log('Gestão Coletiva: Estrutura atualizada - Lançamentos: ' . implode(', ', $alteracoes_lancamentos) . ' | Contestações: ' . implode(', ', $alteracoes_contestacoes));
+                }
+                
                 // Marcar que a instalação foi bem-sucedida
                 add_option('gc_db_version', GC_VERSION);
                 add_option('gc_installed', true);
@@ -236,12 +244,18 @@ class GestaoColetiva {
                 'nonce' => wp_create_nonce('gc_nonce'),
             ));
         }
+        
+        // Enqueue media scripts para seleção de logo
+        if ($hook === 'toplevel_page_gestao-coletiva' || strpos($hook, 'gc-configuracoes') !== false) {
+            wp_enqueue_media();
+        }
     }
     
     public function register_shortcodes() {
         add_shortcode('gc_painel', array($this, 'painel_shortcode'));
         add_shortcode('gc_lancamentos', array($this, 'lancamentos_shortcode'));
         add_shortcode('gc_livro_caixa', array($this, 'livro_caixa_shortcode'));
+        add_shortcode('gc_verificar_certificado', array($this, 'verificar_certificado_shortcode'));
     }
     
     public function painel_shortcode($atts) {
@@ -266,6 +280,16 @@ class GestaoColetiva {
     
     public function livro_caixa_shortcode($atts) {
         $file = GC_PLUGIN_PATH . 'public/views/livro-caixa.php';
+        if (file_exists($file)) {
+            ob_start();
+            include $file;
+            return ob_get_clean();
+        }
+        return '<p>' . __('Erro: arquivo de template não encontrado.', 'gestao-coletiva') . '</p>';
+    }
+    
+    public function verificar_certificado_shortcode($atts) {
+        $file = GC_PLUGIN_PATH . 'public/views/verificar-certificado.php';
         if (file_exists($file)) {
             ob_start();
             include $file;

@@ -12,8 +12,10 @@ switch ($action) {
         include 'lancamentos/criar.php';
         break;
     case 'ver':
-    case 'editar':
         include 'lancamentos/ver.php';
+        break;
+    case 'editar':
+        include 'lancamentos/editar.php';
         break;
     case 'buscar':
         include 'lancamentos/buscar.php';

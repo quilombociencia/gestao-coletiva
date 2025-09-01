@@ -143,6 +143,13 @@ if ($action === 'ver' && !empty($numero)) {
                         </button>
                     <?php endif; ?>
                     
+                    <?php if (!empty($lancamento->anexos) && is_array($lancamento->anexos) && count($lancamento->anexos) > 0): ?>
+                        <button type="button" class="gc-btn gc-btn-outline gc-ver-anexos" data-anexos='<?php echo json_encode($lancamento->anexos); ?>'>
+                            <span class="gc-icon">📎</span>
+                            <?php _e('Ver Anexos', 'gestao-coletiva'); ?>
+                        </button>
+                    <?php endif; ?>
+                    
                     <?php if (GC_Lancamento::pode_editar($lancamento->id)): ?>
                         <button type="button" class="gc-btn gc-btn-outline gc-editar-lancamento" data-id="<?php echo $lancamento->id; ?>">
                             <span class="gc-icon">✏️</span>
@@ -230,9 +237,9 @@ if ($action === 'ver' && !empty($numero)) {
                             </span>
                         </div>
                         <div class="gc-item-acoes">
-                            <a href="?gc_action=ver&numero=<?php echo esc_attr($lanc->numero_unico); ?>" class="gc-btn gc-btn-small">
+                            <button type="button" class="gc-btn gc-btn-small gc-ver-lancamento" data-numero="<?php echo esc_attr($lanc->numero_unico); ?>">
                                 <?php _e('Ver', 'gestao-coletiva'); ?>
-                            </a>
+                            </button>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -251,7 +258,8 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var numero = $('#numero-lancamento').val();
         if (numero) {
-            window.location.href = '?gc_action=ver&numero=' + encodeURIComponent(numero);
+            var currentUrl = window.location.href.split('?')[0];
+            window.location.href = currentUrl + '?gc_action=ver&numero=' + encodeURIComponent(numero);
         }
     });
     
@@ -297,8 +305,8 @@ jQuery(document).ready(function($) {
     }
     
     function gc_criar_lancamento(tipo) {
-        // Implementar modal ou redirecionamento para criar lançamento
-        alert('<?php _e("Funcionalidade de criar lançamento em desenvolvimento", "gestao-coletiva"); ?>');
+        // Abrir modal para criar lançamento em vez de redirecionar
+        gc_abrir_modal_lancamento_simples(tipo);
     }
 });
 </script>

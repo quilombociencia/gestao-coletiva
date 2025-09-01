@@ -441,6 +441,96 @@ jQuery(document).ready(function($) {
         });
     }
     
+    // Tabs de relatórios
+    $('.gc-tab-btn').on('click', function() {
+        var tab = $(this).data('tab');
+        
+        // Atualizar botões
+        $('.gc-tab-btn').removeClass('active');
+        $(this).addClass('active');
+        
+        // Atualizar conteúdo
+        $('.gc-tab-content').removeClass('active');
+        $('#tab-' + tab).addClass('active');
+    });
+    
+    // Botão gerar previsão
+    $('#btn-gerar-previsao').on('click', function() {
+        var dataInicio = $('#data_inicio_prev').val();
+        var dataFim = $('#data_fim_prev').val();
+        
+        if (!dataInicio || !dataFim) {
+            alert('Por favor, selecione as datas de início e fim');
+            return;
+        }
+        
+        if (dataFim <= dataInicio) {
+            alert('A data final deve ser posterior à data inicial');
+            return;
+        }
+        
+        gc_gerar_relatorio_previsao(dataInicio, dataFim);
+    });
+    
+    // Presets de período
+    $('.gc-preset-periodo').on('click', function() {
+        var meses = parseInt($(this).data('meses'));
+        var hoje = new Date();
+        var dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        var dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + meses, 0);
+        
+        $('#data_inicio_prev').val(dataInicio.toISOString().split('T')[0]);
+        $('#data_fim_prev').val(dataFim.toISOString().split('T')[0]);
+    });
+    
+    // Sistema de tabs (delegação para conteúdo AJAX)
+    $(document).on('click', '.gc-tab-btn[data-tab="previstos"], .gc-tab-btn[data-tab="realizados"]', function() {
+        var tab = $(this).data('tab');
+        var container = $(this).closest('.gc-lancamentos-previsao');
+        
+        console.log('GC Debug: Tab clicada:', tab);
+        console.log('GC Debug: Container encontrado:', container.length);
+        console.log('GC Debug: Botões no container:', container.find('.gc-tab-btn').length);
+        console.log('GC Debug: Conteúdos no container:', container.find('.gc-tab-content').length);
+        
+        // Atualizar botões dentro do container
+        container.find('.gc-tab-btn').removeClass('active');
+        $(this).addClass('active');
+        
+        // Atualizar conteúdo dentro do container
+        container.find('.gc-tab-content').removeClass('active');
+        var targetTab = container.find('#tab-' + tab);
+        targetTab.addClass('active');
+        
+        console.log('GC Debug: Target tab encontrada:', targetTab.length);
+        console.log('GC Debug: Target tab visível:', targetTab.is(':visible'));
+    });
+    
+    function gc_gerar_relatorio_previsao(dataInicio, dataFim) {
+        $('#relatorio-previsao').hide().html('<div class="notice notice-info"><p>🔄 Gerando relatório de previsão... Este processo pode demorar alguns segundos.</p></div>').show();
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'gc_gerar_relatorio_previsao',
+                data_inicio: dataInicio,
+                data_fim: dataFim,
+                nonce: gc_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#relatorio-previsao').html(response.data);
+                } else {
+                    $('#relatorio-previsao').html('<div class="notice notice-error"><p>Erro ao gerar relatório: ' + response.data + '</p></div>');
+                }
+            },
+            error: function() {
+                $('#relatorio-previsao').html('<div class="notice notice-error"><p>Erro ao processar solicitação. Tente novamente.</p></div>');
+            }
+        });
+    }
+    
     function gc_gerar_relatorio_periodo(dataInicio, dataFim) {
         $('#relatorio-periodo').hide().html('<p>Carregando...</p>').show();
         
@@ -467,24 +557,258 @@ jQuery(document).ready(function($) {
     }
     
     function gc_exibir_certificado(certificado) {
-        var html = '<div class="gc-certificado">';
-        html += '<h2>Certificado de Doação</h2>';
-        html += '<div class="gc-certificado-content">';
-        html += '<p><strong>Número:</strong> #' + certificado.numero_unico + '</p>';
-        html += '<p><strong>Tipo:</strong> ' + certificado.tipo + '</p>';
-        html += '<p><strong>Doador:</strong> ' + certificado.autor + '</p>';
-        html += '<p><strong>Descrição:</strong> ' + certificado.descricao_curta + '</p>';
-        if (certificado.descricao_detalhada) {
-            html += '<p><strong>Detalhes:</strong> ' + certificado.descricao_detalhada + '</p>';
+        var html = '<div class="gc-certificado" id="certificado-para-impressao">';
+        html += '<div class="gc-certificado-header">';
+        if (certificado.logo_url) {
+            html += '<img src="' + certificado.logo_url + '" alt="Logo da Organização" class="gc-certificado-logo">';
         }
-        html += '<p><strong>Valor:</strong> R$ ' + parseFloat(certificado.valor).toFixed(2).replace('.', ',') + '</p>';
-        html += '<p><strong>Data:</strong> ' + certificado.data_efetivacao + '</p>';
-        html += '<div class="gc-agradecimento">' + certificado.texto_agradecimento + '</div>';
+        html += '<h1>🏆 Certificado de Doação</h1>';
+        html += '<h2>' + certificado.organizacao + '</h2>';
         html += '</div>';
-        html += '<p><button type="button" class="button gc-fechar-modal">Fechar</button></p>';
+        
+        html += '<div class="gc-certificado-content">';
+        html += '<div class="gc-certificado-info">';
+        html += '<div class="gc-info-principal">';
+        html += '<p class="gc-doador"><strong>Doador:</strong> ' + certificado.autor + '</p>';
+        html += '<p class="gc-valor"><strong>Valor:</strong> R$ ' + parseFloat(certificado.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+        html += '<p class="gc-descricao"><strong>Descrição:</strong> ' + certificado.descricao_curta + '</p>';
+        if (certificado.descricao_detalhada) {
+            html += '<p class="gc-detalhes"><strong>Detalhes:</strong> ' + certificado.descricao_detalhada + '</p>';
+        }
+        html += '</div>';
+        
+        html += '<div class="gc-info-meta">';
+        html += '<p><strong>Número do Certificado:</strong> #' + certificado.numero_unico + '</p>';
+        html += '<p><strong>Data da Doação:</strong> ' + gc_formatarDataBrasil(certificado.data_efetivacao) + '</p>';
+        html += '<p><strong>Tipo:</strong> ' + (certificado.tipo === 'receita' ? 'Receita/Doação' : 'Despesa') + '</p>';
+        html += '</div>';
+        html += '</div>';
+        
+        if (certificado.qr_code_url) {
+            html += '<div class="gc-qr-section">';
+            html += '<div class="gc-qr-code">';
+            html += '<img src="' + certificado.qr_code_url + '" alt="QR Code para verificação" class="gc-qr-image">';
+            html += '<p class="gc-qr-texto">Escaneie para verificar a autenticidade</p>';
+            html += '</div>';
+            html += '</div>';
+        }
+        
+        if (certificado.texto_agradecimento) {
+            html += '<div class="gc-agradecimento">';
+            html += '<p>' + certificado.texto_agradecimento + '</p>';
+            html += '</div>';
+        }
+        
+        html += '<div class="gc-verificacao">';
+        html += '<p><small>Verificar autenticidade em: ' + certificado.site_url + '</small></p>';
+        html += '<p><small>Emitido em: ' + gc_formatarDataBrasil(new Date().toISOString()) + '</small></p>';
+        html += '</div>';
+        html += '</div>';
+        
+        html += '<div class="gc-certificado-actions no-print">';
+        html += '<button type="button" class="button button-primary" onclick="gc_imprimirCertificado()">🖨️ Imprimir Certificado</button>';
+        html += ' <button type="button" class="button" onclick="gc_baixarCertificado(\'' + certificado.numero_unico + '\')">📥 Baixar PDF</button>';
+        html += ' <button type="button" class="button gc-fechar-modal">❌ Fechar</button>';
+        html += '</div>';
         html += '</div>';
         
         gc_abrir_modal(html);
+    }
+    
+    // Função para formatar data em português brasileiro
+    function gc_formatarDataBrasil(dataStr) {
+        if (!dataStr) return 'Data não disponível';
+        var data = new Date(dataStr);
+        if (isNaN(data.getTime())) return 'Data inválida';
+        return data.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    
+    // Função para imprimir certificado
+    window.gc_imprimirCertificado = function() {
+        // Abrir nova janela para impressão
+        var printWindow = window.open('', '_blank');
+        var certificadoContent = document.getElementById('certificado-para-impressao');
+        
+        if (!certificadoContent) {
+            alert('Erro: Certificado não encontrado para impressão.');
+            return;
+        }
+        
+        // Clonar o conteúdo do certificado
+        var certificadoClone = certificadoContent.cloneNode(true);
+        
+        // Remover botões de ação do clone
+        var acoes = certificadoClone.querySelector('.gc-certificado-actions');
+        if (acoes) {
+            acoes.remove();
+        }
+        
+        // HTML completo da página de impressão
+        var htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Certificado de Doação</title>
+            <style>
+                @page {
+                    size: A4;
+                    margin: 15mm;
+                }
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.4;
+                    color: #333;
+                    background: white;
+                }
+                .gc-certificado {
+                    max-width: 100%;
+                    margin: 0 auto;
+                    border: 3px solid #0073aa;
+                    padding: 30px;
+                    background: white;
+                    min-height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .gc-certificado-header {
+                    text-align: center;
+                    margin-bottom: 25px;
+                    border-bottom: 2px solid #0073aa;
+                    padding-bottom: 20px;
+                }
+                .gc-certificado-header h1 {
+                    color: #0073aa;
+                    font-size: 28px;
+                    margin-bottom: 8px;
+                    font-weight: bold;
+                }
+                .gc-certificado-header h2 {
+                    color: #666;
+                    font-size: 18px;
+                    font-weight: normal;
+                }
+                .gc-certificado-logo {
+                    max-height: 80px;
+                    margin-bottom: 15px;
+                    display: block;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+                .gc-certificado-content {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .gc-certificado-info {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 20px;
+                    margin-bottom: 20px;
+                }
+                .gc-info-principal {
+                    flex: 2;
+                }
+                .gc-info-meta {
+                    flex: 1;
+                    background: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 6px;
+                    border-left: 4px solid #0073aa;
+                }
+                .gc-doador, .gc-valor {
+                    font-size: 20px;
+                    margin: 12px 0;
+                    font-weight: 600;
+                }
+                .gc-valor {
+                    color: #28a745;
+                }
+                .gc-qr-section {
+                    text-align: center;
+                    margin: 25px 0;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                    border: 1px solid #e9ecef;
+                }
+                .gc-qr-image {
+                    border: 2px solid #ddd;
+                    padding: 8px;
+                    border-radius: 4px;
+                    background: white;
+                    max-width: 120px;
+                    height: auto;
+                }
+                .gc-qr-texto {
+                    margin-top: 8px;
+                    font-size: 12px;
+                    color: #666;
+                    font-style: italic;
+                }
+                .gc-agradecimento {
+                    background: #e6f3ff;
+                    padding: 20px;
+                    border-left: 4px solid #0073aa;
+                    border-radius: 0 4px 4px 0;
+                    margin: 20px 0;
+                    font-style: italic;
+                    line-height: 1.6;
+                }
+                .gc-verificacao {
+                    border-top: 1px solid #e9ecef;
+                    padding-top: 15px;
+                    margin-top: auto;
+                    text-align: center;
+                    color: #6c757d;
+                    font-size: 11px;
+                    line-height: 1.4;
+                }
+                .no-print, .gc-certificado-actions {
+                    display: none !important;
+                }
+                
+                @media print {
+                    body { margin: 0; }
+                    .gc-certificado { 
+                        border: 3px solid #0073aa !important;
+                        min-height: auto;
+                        page-break-inside: avoid;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            ${certificadoClone.outerHTML}
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() {
+                        window.close();
+                    }, 500);
+                };
+            </script>
+        </body>
+        </html>`;
+        
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+    }
+    
+    // Função placeholder para baixar PDF (pode ser implementada futuramente)
+    window.gc_baixarCertificado = function(numeroUnico) {
+        alert('Funcionalidade de download em PDF será implementada em uma versão futura. Por enquanto, use a opção "Imprimir" e selecione "Salvar como PDF" no seu navegador.');
     }
     
     // Sistema de modal simples
@@ -512,8 +836,8 @@ jQuery(document).ready(function($) {
             backgroundColor: '#fff',
             padding: '20px',
             borderRadius: '8px',
-            maxWidth: '600px',
-            maxHeight: '80vh',
+            maxWidth: '90vw',
+            maxHeight: '90vh',
             overflow: 'auto',
             position: 'relative'
         }).html(content);
@@ -521,15 +845,17 @@ jQuery(document).ready(function($) {
         $modal.append($content);
         $('body').append($modal);
         
-        // Fechar ao clicar fora
+        // Fechar ao clicar fora do conteúdo
         $modal.on('click', function(e) {
             if (e.target === this) {
                 gc_fechar_modal();
             }
         });
         
-        // Botão fechar
-        $('.gc-fechar-modal').on('click', function() {
+        // Usar event delegation para botões fechar (funciona mesmo após mudanças no DOM)
+        $(document).off('click.modal-fechar').on('click.modal-fechar', '.gc-fechar-modal', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             gc_fechar_modal();
         });
     }
@@ -602,6 +928,51 @@ jQuery(document).ready(function($) {
     });
     
     // Limpar todos os dados
+    // Handler para cancelar recorrência
+    $('.gc-cancelar-recorrencia').on('click', function() {
+        var button = $(this);
+        var lancamentoId = button.data('id');
+        
+        if (!confirm('Tem certeza que deseja cancelar esta recorrência? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+        
+        button.prop('disabled', true).text('Cancelando...');
+        
+        $.ajax({
+            url: gc_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'gc_cancelar_recorrencia',
+                id: lancamentoId,
+                nonce: gc_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data);
+                    location.reload(); // Recarregar página para atualizar informações
+                } else {
+                    alert('Erro: ' + response.data);
+                    button.prop('disabled', false).text('Cancelar Recorrência');
+                }
+            },
+            error: function() {
+                alert('Erro ao processar solicitação');
+                button.prop('disabled', false).text('Cancelar Recorrência');
+            }
+        });
+    });
+    
+    // Handler para ver série de recorrência
+    $('.gc-ver-serie-recorrencia').on('click', function() {
+        var button = $(this);
+        var lancamentoId = button.data('id');
+        
+        // Redirecionar para lista filtrada por série
+        var url = 'admin.php?page=gc-lancamentos&serie=' + lancamentoId;
+        window.location.href = url;
+    });
+    
     $('#btn-limpar-tudo').on('click', function() {
         var button = $(this);
         

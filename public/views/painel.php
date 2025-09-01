@@ -100,8 +100,8 @@ $nome_beneficiario_pix = GC_Database::get_setting('nome_beneficiario_pix');
                 <div class="gc-acao-icon">📊</div>
                 <h4><?php _e('Livro Caixa', 'gestao-coletiva'); ?></h4>
                 <p><?php _e('Veja a transparência total das finanças', 'gestao-coletiva'); ?></p>
-                <a href="<?php echo admin_url('admin.php?page=gc-relatorios'); ?>" class="gc-btn gc-btn-outline">
-                    <?php _e('Ver Relatórios', 'gestao-coletiva'); ?>
+                <a href="#" class="gc-btn gc-btn-outline gc-ver-livro-caixa">
+                    <?php _e('Ver Livro-Caixa', 'gestao-coletiva'); ?>
                 </a>
             </div>
         </div>
@@ -117,6 +117,10 @@ $nome_beneficiario_pix = GC_Database::get_setting('nome_beneficiario_pix');
                 <div class="gc-stat">
                     <span class="gc-stat-numero"><?php echo count(GC_Lancamento::listar(array('estado' => 'efetivado'))); ?></span>
                     <span class="gc-stat-label"><?php _e('Lançamentos Confirmados', 'gestao-coletiva'); ?></span>
+                </div>
+                <div class="gc-stat">
+                    <span class="gc-stat-numero"><?php echo count(GC_Lancamento::listar(array('recorrencia_ativa' => 1))); ?></span>
+                    <span class="gc-stat-label"><?php _e('Doações Recorrentes', 'gestao-coletiva'); ?></span>
                 </div>
                 <div class="gc-stat">
                     <span class="gc-stat-numero"><?php echo count(GC_Contestacao::listar()); ?></span>
@@ -143,23 +147,41 @@ $nome_beneficiario_pix = GC_Database::get_setting('nome_beneficiario_pix');
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-    // Abrir modal para criar lançamento
-    $('.gc-btn-acao, .gc-btn-contribuir').on('click', function() {
-        var tipo = $(this).data('tipo');
-        gc_abrir_modal_lancamento(tipo);
+    console.log('Painel: Inicializando handlers locais...');
+    
+    // Ver livro-caixa
+    $('.gc-ver-livro-caixa').on('click', function(e) {
+        e.preventDefault();
+        console.log('Link livro-caixa clicado');
+        // Redirecionar para página que usa o shortcode [gc_livro_caixa]
+        window.location.href = '<?php echo home_url("livro-caixa"); ?>';
     });
     
-    // Abrir modal para ver lançamento
-    $('.gc-btn-ver-lancamento').on('click', function() {
-        gc_abrir_modal_buscar();
-    });
-    
-    // Fechar modal
-    $('.gc-modal-close, .gc-modal').on('click', function(e) {
-        if (e.target === this) {
-            $('#gc-modal').hide();
-        }
-    });
+    // Verificar se o sistema de modal global está disponível
+    if (typeof gc_abrir_modal !== 'function') {
+        console.log('Sistema de modal global não encontrado. Definindo handlers locais...');
+        
+        // Handlers locais apenas se o global não existir
+        $('.gc-btn-acao, .gc-btn-contribuir').on('click', function() {
+            var tipo = $(this).data('tipo');
+            console.log('Botão ação clicado:', tipo);
+            gc_abrir_modal_lancamento(tipo);
+        });
+        
+        $('.gc-btn-ver-lancamento').on('click', function() {
+            console.log('Botão consultar clicado');
+            gc_abrir_modal_buscar();
+        });
+        
+        // Fechar modal
+        $('.gc-modal-close, .gc-modal').on('click', function(e) {
+            if (e.target === this) {
+                $('#gc-modal').hide();
+            }
+        });
+    } else {
+        console.log('Sistema de modal global encontrado. Usando handlers globais.');
+    }
     
     function gc_abrir_modal_lancamento(tipo) {
         var titulo = tipo === 'receita' ? '<?php _e("Fazer Doação", "gestao-coletiva"); ?>' : '<?php _e("Registrar Despesa", "gestao-coletiva"); ?>';
@@ -172,7 +194,7 @@ jQuery(document).ready(function($) {
         html += '<p><label><?php _e("Descrição detalhada:", "gestao-coletiva"); ?><br>';
         html += '<textarea name="descricao_detalhada" rows="4" style="width: 100%;"></textarea></label></p>';
         html += '<p><label><?php _e("Valor (R$):", "gestao-coletiva"); ?><br>';
-        html += '<input type="number" name="valor" min="0.01" step="0.01" required style="width: 100%;"></label></p>';
+        html += '<input type="number" name="valor" min="0.01" step="0.01" required class="gc-input-valor" style="width: 100%; font-size: 16px; padding: 10px;"></label></p>';
         
         if (tipo === 'receita') {
             html += '<div class="gc-instrucoes-pix">';
@@ -180,7 +202,7 @@ jQuery(document).ready(function($) {
             <?php if (!empty($chave_pix)): ?>
                 html += '<p><?php _e("Para confirmar sua doação, realize a transferência via PIX usando as informações abaixo:", "gestao-coletiva"); ?></p>';
                 html += '<div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 4px; padding: 15px; margin: 10px 0;">';
-                html += '<p><strong><?php _e("Chave PIX:", "gestao-coletiva"); ?></strong> <span style="font-family: monospace; background: #f1f1f1; padding: 2px 6px; border-radius: 3px;"><?php echo esc_js($chave_pix); ?></span></p>';
+                html += '<p><strong><?php _e("Chave PIX:", "gestao-coletiva"); ?></strong> <span style="font-family: monospace; background: #f1f1f1; padding: 2px 6px; border-radius: 3px; cursor: pointer;" onclick="navigator.clipboard.writeText(this.textContent); alert(\'Chave PIX copiada!\')"><?php echo esc_js($chave_pix); ?></span></p>';
                 <?php if (!empty($nome_beneficiario_pix)): ?>
                     html += '<p><strong><?php _e("Beneficiário:", "gestao-coletiva"); ?></strong> <?php echo esc_js($nome_beneficiario_pix); ?></p>';
                 <?php endif; ?>
@@ -188,15 +210,21 @@ jQuery(document).ready(function($) {
             <?php else: ?>
                 html += '<p style="color: #d63638; font-style: italic;"><?php _e("⚠️ Chave PIX não configurada. Entre em contato com a administração.", "gestao-coletiva"); ?></p>';
             <?php endif; ?>
-            html += '<p><?php _e("Após fazer o PIX, seu lançamento ficará 'Previsto' até ser confirmado pela administração.", "gestao-coletiva"); ?></p>';
+            html += '<p><?php _e("Após fazer o PIX, seu lançamento ficará \'Previsto\' até ser confirmado pela administração.", "gestao-coletiva"); ?></p>';
             html += '</div>';
         }
         
         html += '<p><button type="submit" class="gc-btn gc-btn-primary">' + titulo + '</button></p>';
         html += '</form>';
         
-        $('#gc-modal-body').html(html);
-        $('#gc-modal').show();
+        // Usar sistema de modal global se disponível
+        if (typeof gc_abrir_modal === 'function') {
+            gc_abrir_modal(html);
+        } else {
+            // Fallback para modal local
+            $('#gc-modal-body').html(html);
+            $('#gc-modal').show();
+        }
     }
     
     function gc_abrir_modal_buscar() {
@@ -208,32 +236,17 @@ jQuery(document).ready(function($) {
         html += '</form>';
         html += '<div id="gc-resultado-busca"></div>';
         
-        $('#gc-modal-body').html(html);
-        $('#gc-modal').show();
+        // Usar sistema de modal global se disponível
+        if (typeof gc_abrir_modal === 'function') {
+            gc_abrir_modal(html);
+        } else {
+            // Fallback para modal local
+            $('#gc-modal-body').html(html);
+            $('#gc-modal').show();
+        }
     }
     
-    // Handler para criar lançamento
-    $(document).on('submit', '#gc-form-lancamento-publico', function(e) {
-        e.preventDefault();
-        
-        var formData = $(this).serialize() + '&action=gc_criar_lancamento&nonce=' + (typeof gc_ajax !== 'undefined' ? gc_ajax.nonce : '');
-        
-        $.ajax({
-            url: typeof gc_ajax !== 'undefined' ? gc_ajax.ajax_url : '/wp-admin/admin-ajax.php',
-            type: 'POST',
-            data: formData,
-            success: function(response) {
-                if (response.success) {
-                    alert(response.data.message + ' Número: #' + response.data.numero);
-                    $('#gc-modal').hide();
-                } else {
-                    alert('Erro: ' + response.data);
-                }
-            },
-            error: function() {
-                alert('<?php _e("Erro ao processar solicitação", "gestao-coletiva"); ?>');
-            }
-        });
-    });
+    // Handler para criar lançamento já existe no public.js global
+    // Removido para evitar duplicação
 });
 </script>

@@ -61,8 +61,35 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                         </tr>
                         <tr>
                             <th scope="row"><?php _e('Recorrência:', 'gestao-coletiva'); ?></th>
-                            <td><?php echo esc_html(ucfirst($lancamento->recorrencia)); ?></td>
+                            <td>
+                                <?php echo esc_html(ucfirst($lancamento->recorrencia)); ?>
+                                <?php if ($lancamento->recorrencia !== 'unica'): ?>
+                                    <?php if ($lancamento->recorrencia_ativa): ?>
+                                        <span class="gc-badge gc-badge-success"><?php _e('Ativa', 'gestao-coletiva'); ?></span>
+                                    <?php else: ?>
+                                        <span class="gc-badge gc-badge-error"><?php _e('Cancelada', 'gestao-coletiva'); ?></span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
                         </tr>
+                        
+                        <?php if ($lancamento->lancamento_pai_id): ?>
+                        <tr>
+                            <th scope="row"><?php _e('Lançamento Pai:', 'gestao-coletiva'); ?></th>
+                            <td>
+                                <a href="<?php echo admin_url('admin.php?page=gc-lancamentos&action=ver&id=' . $lancamento->lancamento_pai_id); ?>">
+                                    #<?php echo esc_html(GC_Lancamento::obter($lancamento->lancamento_pai_id)->numero_unico ?? 'N/A'); ?>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
+                        
+                        <?php if ($lancamento->data_proxima_recorrencia && $lancamento->recorrencia_ativa): ?>
+                        <tr>
+                            <th scope="row"><?php _e('Próxima Recorrência:', 'gestao-coletiva'); ?></th>
+                            <td><?php echo date('d/m/Y H:i', strtotime($lancamento->data_proxima_recorrencia)); ?></td>
+                        </tr>
+                        <?php endif; ?>
                     </table>
                 </div>
                 
@@ -121,7 +148,7 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                     <?php endif; ?>
                 </div>
                 
-                <?php if (!empty($lancamento->anexos)): ?>
+                <?php if (!empty($lancamento->anexos) && is_array($lancamento->anexos) && count($lancamento->anexos) > 0): ?>
                 <div class="gc-anexos">
                     <h3><?php _e('Anexos', 'gestao-coletiva'); ?></h3>
                     <div class="gc-lista-anexos">
@@ -158,6 +185,7 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                         </button>
                     <?php endif; ?>
                     
+                    
                     <?php 
                     // Estados que permitem gerar certificado
                     $estados_certificado = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
@@ -165,6 +193,19 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                     ?>
                         <button type="button" class="button gc-gerar-certificado" data-id="<?php echo $id; ?>">
                             <?php _e('Gerar Certificado', 'gestao-coletiva'); ?>
+                        </button>
+                    <?php endif; ?>
+                    
+                    <!-- Ações de Recorrência -->
+                    <?php if ($lancamento->recorrencia !== 'unica'): ?>
+                        <?php if ($lancamento->recorrencia_ativa): ?>
+                            <button type="button" class="button button-secondary gc-cancelar-recorrencia" data-id="<?php echo $id; ?>">
+                                <?php _e('Cancelar Recorrência', 'gestao-coletiva'); ?>
+                            </button>
+                        <?php endif; ?>
+                        
+                        <button type="button" class="button gc-ver-serie-recorrencia" data-id="<?php echo $id; ?>">
+                            <?php _e('Ver Série Completa', 'gestao-coletiva'); ?>
                         </button>
                     <?php endif; ?>
                     

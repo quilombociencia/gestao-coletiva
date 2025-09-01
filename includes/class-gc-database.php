@@ -22,6 +22,9 @@ class GC_Database {
             descricao_detalhada text,
             valor decimal(10,2) NOT NULL,
             recorrencia enum('unica', 'mensal', 'trimestral', 'anual') DEFAULT 'unica',
+            lancamento_pai_id int(11) NULL COMMENT 'ID do lançamento original para recorrências',
+            data_proxima_recorrencia datetime NULL COMMENT 'Data da próxima ocorrência para lançamentos recorrentes',
+            recorrencia_ativa boolean DEFAULT TRUE COMMENT 'Se a recorrência ainda está ativa',
             estado enum('previsto', 'efetivado', 'cancelado', 'expirado', 'em_contestacao', 'contestado', 'confirmado', 'aceito', 'em_disputa', 'retificado_comunidade', 'contestado_comunidade') DEFAULT 'previsto',
             autor_id int(11) NOT NULL,
             data_criacao datetime NOT NULL,
@@ -377,6 +380,38 @@ class GC_Database {
         if ($estado_column && (strpos($estado_column->Type, 'votacao_aberta') === false || strpos($estado_column->Type, 'expirada') === false)) {
             $wpdb->query("ALTER TABLE $table_name MODIFY estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'votacao_aberta', 'disputa_finalizada', 'expirada') DEFAULT 'pendente'");
             $alteracoes_executadas[] = 'estado_enum_atualizado_v2';
+        }
+        
+        return $alteracoes_executadas;
+    }
+    
+    public static function atualizar_estrutura_lancamentos() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_lancamentos';
+        
+        // Verificar se os novos campos existem
+        $columns = $wpdb->get_results("DESCRIBE $table_name");
+        $column_names = array_column($columns, 'Field');
+        
+        $alteracoes_executadas = array();
+        
+        // Adicionar campo lancamento_pai_id se não existir
+        if (!in_array('lancamento_pai_id', $column_names)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN lancamento_pai_id int(11) NULL COMMENT 'ID do lançamento original para recorrências' AFTER recorrencia");
+            $alteracoes_executadas[] = 'lancamento_pai_id';
+        }
+        
+        // Adicionar campo data_proxima_recorrencia se não existir
+        if (!in_array('data_proxima_recorrencia', $column_names)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN data_proxima_recorrencia datetime NULL COMMENT 'Data da próxima ocorrência para lançamentos recorrentes' AFTER lancamento_pai_id");
+            $alteracoes_executadas[] = 'data_proxima_recorrencia';
+        }
+        
+        // Adicionar campo recorrencia_ativa se não existir
+        if (!in_array('recorrencia_ativa', $column_names)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN recorrencia_ativa boolean DEFAULT TRUE COMMENT 'Se a recorrência ainda está ativa' AFTER data_proxima_recorrencia");
+            $alteracoes_executadas[] = 'recorrencia_ativa';
         }
         
         return $alteracoes_executadas;

@@ -13,7 +13,15 @@ $contestacoes_pendentes = GC_Contestacao::obter_pendentes_por_usuario();
 ?>
 
 <div class="wrap">
-    <h1><?php _e('Gestão Coletiva - Painel', 'gestao-coletiva'); ?></h1>
+    <div class="gc-header-admin">
+        <?php $logo_url = GC_Database::get_setting('logo_url'); ?>
+        <?php if (!empty($logo_url)): ?>
+            <div class="gc-logo-admin">
+                <img src="<?php echo esc_url($logo_url); ?>" alt="<?php _e('Logo da Organização', 'gestao-coletiva'); ?>" class="gc-admin-logo">
+            </div>
+        <?php endif; ?>
+        <h1><?php _e('Gestão Coletiva - Painel', 'gestao-coletiva'); ?></h1>
+    </div>
     
     <div class="gc-dashboard">
         <div class="gc-row">

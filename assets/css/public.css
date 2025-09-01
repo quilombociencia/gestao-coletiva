@@ -1,5 +1,222 @@
 /* Gestão Coletiva - Public Styles */
 
+/* Estilos dos certificados */
+.gc-certificado {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    background: #fff;
+    border: 2px solid #0073aa;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.gc-certificado-header {
+    text-align: center;
+    padding: 30px 40px 20px;
+    border-bottom: 2px solid #0073aa;
+    background: linear-gradient(135deg, #f8f9ff 0%, #e6f2ff 100%);
+}
+
+.gc-certificado-header h1 {
+    color: #0073aa;
+    font-size: 28px;
+    margin: 0 0 5px 0;
+    font-weight: bold;
+}
+
+.gc-certificado-header h2 {
+    color: #666;
+    font-size: 18px;
+    margin: 0;
+    font-weight: normal;
+}
+
+.gc-certificado-logo {
+    max-height: 80px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.gc-certificado-content {
+    padding: 30px 40px;
+    line-height: 1.6;
+}
+
+.gc-certificado-info {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.gc-info-principal {
+    flex: 2;
+}
+
+.gc-info-meta {
+    flex: 1;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 6px;
+    border-left: 4px solid #0073aa;
+}
+
+.gc-doador, .gc-valor {
+    font-size: 18px;
+    margin: 15px 0;
+    font-weight: 600;
+}
+
+.gc-valor {
+    color: #28a745;
+}
+
+.gc-qr-section {
+    text-align: center;
+    margin: 30px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.gc-qr-code {
+    display: inline-block;
+}
+
+.gc-qr-image {
+    border: 2px solid #ddd;
+    padding: 10px;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.gc-qr-texto {
+    margin: 10px 0 0 0;
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+.gc-agradecimento {
+    background: #e6f3ff;
+    padding: 25px;
+    border-left: 4px solid #0073aa;
+    border-radius: 0 4px 4px 0;
+    margin: 25px 0;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+.gc-verificacao {
+    border-top: 1px solid #e9ecef;
+    padding-top: 20px;
+    margin-top: 30px;
+    text-align: center;
+    color: #6c757d;
+    font-size: 12px;
+}
+
+.gc-certificado-actions {
+    text-align: center;
+    padding: 20px 40px 30px;
+    border-top: 1px solid #e9ecef;
+}
+
+.gc-certificado-actions .gc-btn {
+    margin: 0 5px;
+}
+
+/* Modal responsivo para certificados */
+.gc-modal {
+    padding: 20px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .gc-certificado-info {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .gc-certificado-header, 
+    .gc-certificado-content, 
+    .gc-certificado-actions {
+        padding: 20px 25px;
+    }
+    
+    .gc-certificado-header h1 {
+        font-size: 24px;
+    }
+    
+    .gc-doador, .gc-valor {
+        font-size: 16px;
+    }
+}
+
+/* Estilos para elementos de previsão */
+.gc-previsto {
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.gc-previsto-badge {
+    background: #007cba;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+}
+
+.gc-lancamento-previsto {
+    background: #f0f8ff !important;
+    border-left: 3px solid #007cba !important;
+}
+
+.gc-lancamento-realizado {
+    background: #f0fff0 !important;
+    border-left: 3px solid #28a745 !important;
+}
+
+.gc-badge-info {
+    background: #17a2b8;
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+
+.gc-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.gc-tab-btn {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.gc-tab-btn.active {
+    color: #007cba;
+    border-bottom-color: #007cba;
+    font-weight: 600;
+}
+
+.gc-tab-btn:hover:not(.active) {
+    color: #333;
+}
+
 /* Container principal */
 .gc-container {
     max-width: 1200px;
@@ -737,5 +954,123 @@
     .gc-modal-content {
         width: 95%;
         margin: 10% auto;
+    }
+}
+
+/* Certificado com logo - versão pública */
+.gc-certificado {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 30px;
+    background: #fff;
+    border: 2px solid #0073aa;
+    border-radius: 8px;
+}
+
+.gc-certificado-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.gc-certificado-logo {
+    max-height: 80px;
+    max-width: 250px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 15px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.gc-certificado-header h2 {
+    color: #0073aa;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.gc-cert-info {
+    line-height: 1.6;
+}
+
+.gc-cert-info p {
+    margin-bottom: 12px;
+}
+
+.gc-cert-info strong {
+    color: #333;
+}
+
+.gc-agradecimento {
+    background: #f8f9fa;
+    padding: 20px;
+    border-left: 4px solid #0073aa;
+    margin: 20px 0;
+    font-style: italic;
+}
+
+.gc-certificado-actions {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e5e5;
+}
+
+/* Modal de anexos */
+.gc-modal-anexos h3 {
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #0073aa;
+    padding-bottom: 10px;
+}
+
+.gc-lista-anexos {
+    margin: 20px 0;
+}
+
+.gc-anexo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background: #f9f9f9;
+}
+
+.gc-anexo-nome {
+    font-weight: 500;
+    color: #333;
+}
+
+.gc-anexo-item .gc-btn {
+    min-width: 60px;
+}
+
+.gc-modal-acoes {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e5e5;
+}
+
+@media print {
+    .gc-certificado {
+        border: none;
+        box-shadow: none;
+        padding: 20px;
+    }
+    
+    .gc-certificado-logo {
+        max-height: 100px;
+    }
+    
+    .gc-certificado-actions {
+        display: none;
     }
 }

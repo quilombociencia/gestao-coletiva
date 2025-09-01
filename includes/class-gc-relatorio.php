@@ -235,4 +235,220 @@ class GC_Relatorio {
         
         return $periodos;
     }
+    
+    /**
+     * Gera relatório de previsão incluindo lançamentos futuros
+     */
+    public static function gerar_relatorio_previsao($data_inicio, $data_fim) {
+        $saldo_inicial = self::calcular_saldo_inicial($data_inicio);
+        
+        // Garantir que lançamentos recorrentes futuros sejam criados até a data final
+        GC_Lancamento::processar_recorrencias_ate_data($data_fim);
+        
+        // Separar movimentação realizada vs prevista
+        $movimentacao_realizada = self::calcular_movimentacao_realizada($data_inicio, $data_fim);
+        $movimentacao_prevista = self::calcular_movimentacao_prevista($data_inicio, $data_fim);
+        
+        // Obter lançamentos realizados e previstos (apenas os que existem no banco)
+        $lancamentos_realizados = self::obter_lancamentos_realizados($data_inicio, $data_fim);
+        $lancamentos_previstos = self::obter_lancamentos_previstos($data_inicio, $data_fim);
+        
+        // Calcular evolução com previsões (apenas lançamentos reais)
+        $evolucao_diaria = self::calcular_evolucao_com_previsao($data_inicio, $data_fim, $saldo_inicial);
+        
+        $saldo_realizado = $saldo_inicial + $movimentacao_realizada['saldo'];
+        $saldo_previsto = $saldo_realizado + $movimentacao_prevista['saldo'];
+        
+        return array(
+            'periodo' => array(
+                'inicio' => $data_inicio,
+                'fim' => $data_fim,
+                'is_futuro' => strtotime($data_inicio) > time()
+            ),
+            'saldo_inicial' => $saldo_inicial,
+            'movimentacao_realizada' => $movimentacao_realizada,
+            'movimentacao_prevista' => $movimentacao_prevista,
+            'saldo_realizado' => $saldo_realizado,
+            'saldo_previsto' => $saldo_previsto,
+            'lancamentos_realizados' => $lancamentos_realizados,
+            'lancamentos_previstos' => $lancamentos_previstos,
+            'evolucao_diaria' => $evolucao_diaria,
+            'total_lancamentos' => count($lancamentos_realizados) + count($lancamentos_previstos)
+        );
+    }
+    
+    /**
+     * Calcula movimentação de lançamentos já realizados
+     */
+    private static function calcular_movimentacao_realizada($data_inicio, $data_fim) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_lancamentos';
+        
+        // Estados realizados/confirmados
+        $estados_realizados = "('efetivado', 'confirmado', 'aceito', 'retificado_comunidade')";
+        
+        $receitas = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(valor), 0) FROM $table_name 
+             WHERE tipo = 'receita' 
+             AND estado IN $estados_realizados
+             AND data_criacao BETWEEN %s AND %s",
+            $data_inicio, $data_fim
+        ));
+        
+        $despesas = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(valor), 0) FROM $table_name 
+             WHERE tipo = 'despesa' 
+             AND estado IN $estados_realizados
+             AND data_criacao BETWEEN %s AND %s",
+            $data_inicio, $data_fim
+        ));
+        
+        return array(
+            'receitas' => floatval($receitas),
+            'despesas' => floatval($despesas),
+            'saldo' => floatval($receitas) - floatval($despesas)
+        );
+    }
+    
+    /**
+     * Calcula movimentação de lançamentos previstos
+     */
+    private static function calcular_movimentacao_prevista($data_inicio, $data_fim) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_lancamentos';
+        
+        // Estados previstos
+        $estados_previstos = "('previsto')";
+        
+        $receitas = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(valor), 0) FROM $table_name 
+             WHERE tipo = 'receita' 
+             AND estado IN $estados_previstos
+             AND data_criacao BETWEEN %s AND %s",
+            $data_inicio, $data_fim
+        ));
+        
+        $despesas = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(valor), 0) FROM $table_name 
+             WHERE tipo = 'despesa' 
+             AND estado IN $estados_previstos
+             AND data_criacao BETWEEN %s AND %s",
+            $data_inicio, $data_fim
+        ));
+        
+        return array(
+            'receitas' => floatval($receitas),
+            'despesas' => floatval($despesas),
+            'saldo' => floatval($receitas) - floatval($despesas)
+        );
+    }
+    
+    /**
+     * Obtém lançamentos realizados no período
+     */
+    private static function obter_lancamentos_realizados($data_inicio, $data_fim) {
+        return GC_Lancamento::listar(array(
+            'data_inicio' => $data_inicio,
+            'data_fim' => $data_fim,
+            'estados_realizados' => true,
+            'order' => 'data_criacao ASC'
+        ));
+    }
+    
+    /**
+     * Obtém lançamentos previstos no período
+     */
+    private static function obter_lancamentos_previstos($data_inicio, $data_fim) {
+        return GC_Lancamento::listar(array(
+            'data_inicio' => $data_inicio,
+            'data_fim' => $data_fim,
+            'estado' => 'previsto',
+            'order' => 'data_criacao ASC'
+        ));
+    }
+    
+    /**
+     * Calcula evolução diária incluindo previsões
+     */
+    private static function calcular_evolucao_com_previsao($data_inicio, $data_fim, $saldo_inicial) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_lancamentos';
+        $agora = current_time('mysql');
+        
+        // Obter movimentações diárias
+        $movimentacoes = $wpdb->get_results($wpdb->prepare(
+            "SELECT DATE(data_criacao) as data,
+                    tipo,
+                    estado,
+                    SUM(valor) as valor_total,
+                    COUNT(*) as quantidade
+             FROM $table_name 
+             WHERE data_criacao BETWEEN %s AND %s
+             GROUP BY DATE(data_criacao), tipo, estado
+             ORDER BY data_criacao ASC",
+            $data_inicio, $data_fim
+        ));
+        
+        $evolucao = array();
+        $saldo_acumulado = $saldo_inicial;
+        $data_atual = new DateTime($data_inicio);
+        $data_final = new DateTime($data_fim);
+        
+        while ($data_atual <= $data_final) {
+            $data_str = $data_atual->format('Y-m-d');
+            $is_futuro = $data_atual->format('Y-m-d H:i:s') > $agora;
+            
+            $movimento_dia = 0;
+            $receitas_realizadas = 0;
+            $despesas_realizadas = 0;
+            $receitas_previstas = 0;
+            $despesas_previstas = 0;
+            
+            foreach ($movimentacoes as $mov) {
+                if ($mov->data === $data_str) {
+                    $valor = floatval($mov->valor_total);
+                    
+                    if (in_array($mov->estado, ['efetivado', 'confirmado', 'aceito', 'retificado_comunidade'])) {
+                        // Lançamento realizado
+                        if ($mov->tipo === 'receita') {
+                            $receitas_realizadas += $valor;
+                            $movimento_dia += $valor;
+                        } else {
+                            $despesas_realizadas += $valor;
+                            $movimento_dia -= $valor;
+                        }
+                    } elseif ($mov->estado === 'previsto') {
+                        // Lançamento previsto (incluindo recorrências criadas pelo sistema)
+                        if ($mov->tipo === 'receita') {
+                            $receitas_previstas += $valor;
+                        } else {
+                            $despesas_previstas += $valor;
+                        }
+                    }
+                }
+            }
+            
+            $saldo_acumulado += $movimento_dia;
+            $saldo_com_previsao = $saldo_acumulado + $receitas_previstas - $despesas_previstas;
+            
+            $evolucao[] = array(
+                'data' => $data_atual->format('d/m'),
+                'data_completa' => $data_str,
+                'saldo_acumulado' => $saldo_acumulado,
+                'saldo_com_previsao' => $saldo_com_previsao,
+                'receitas_realizadas' => $receitas_realizadas,
+                'despesas_realizadas' => $despesas_realizadas,
+                'receitas_previstas' => $receitas_previstas,
+                'despesas_previstas' => $despesas_previstas,
+                'is_futuro' => $is_futuro
+            );
+            
+            $data_atual->add(new DateInterval('P1D'));
+        }
+        
+        return $evolucao;
+    }
 }

@@ -50,7 +50,7 @@ $tipo_default = isset($_GET['tipo']) ? sanitize_text_field($_GET['tipo']) : 'rec
                     <label for="valor"><?php _e('Valor (R$)', 'gestao-coletiva'); ?></label>
                 </th>
                 <td>
-                    <input type="number" name="valor" id="valor" class="small-text" min="0.01" step="0.01" required>
+                    <input type="number" name="valor" id="valor" class="regular-text" min="0.01" step="0.01" required>
                     <p class="description"><?php _e('Valor em reais (use ponto como separador decimal)', 'gestao-coletiva'); ?></p>
                 </td>
             </tr>

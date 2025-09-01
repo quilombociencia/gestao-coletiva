@@ -91,6 +91,17 @@ if (!empty($numero)) {
                                 <?php _e('Ver Detalhes Completos', 'gestao-coletiva'); ?>
                             </a>
                             
+                            <?php if (!empty($lancamento->anexos) && is_array($lancamento->anexos) && count($lancamento->anexos) > 0): ?>
+                                <div class="gc-anexos-lista">
+                                    <label><?php _e('Anexos:', 'gestao-coletiva'); ?></label>
+                                    <?php foreach ($lancamento->anexos as $index => $anexo): ?>
+                                        <a href="<?php echo esc_url($anexo); ?>" target="_blank" class="button button-small">
+                                            <?php printf(__('Anexo %d', 'gestao-coletiva'), $index + 1); ?>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                            
                             <?php if (GC_Lancamento::pode_editar($lancamento->id)): ?>
                                 <a href="<?php echo admin_url('admin.php?page=gc-lancamentos&action=editar&id=' . $lancamento->id); ?>" 
                                    class="button">

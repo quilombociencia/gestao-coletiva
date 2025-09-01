@@ -7,7 +7,7 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 **Autor**: Quilombo Ciência (https://github.com/quilombociencia)  
 **Repositório**: https://github.com/quilombociencia/gestao-coletiva  
 **Licença**: GPL/GNU 3.0  
-**Versão**: 1.1.0
+**Versão**: 1.1.1
 
 ## Funcionalidades Principais
 
@@ -21,7 +21,7 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 ### 🔍 Transparência Total
 - **Livro-caixa público**: Visualização em tempo real de todas movimentações
 - **Relatórios periódicos**: Mensais, trimestrais e anuais
-- **Certificados de doação**: Comprovantes automáticos para doadores
+- **Certificados de doação**: Comprovantes automáticos com verificação de autenticidade
 - **Sistema de contestação**: Qualquer pessoa pode questionar lançamentos
 
 ### 🛡️ Sistema de Contestações
@@ -37,7 +37,28 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 - **Verificação manual** pela administração
 - **Certificados digitais** para doações efetivadas
 
-## 🎉 Novidades da v1.1.0
+## 🎉 Novidades da v1.1.1
+
+### 🏆 Certificados Aprimorados
+- **Informações de recorrência**: Certificados agora incluem detalhes sobre doações recorrentes
+- **Verificação de autenticidade**: Sistema completo para validar certificados via QR Code
+- **Novo shortcode**: `[gc_verificar_certificado]` para páginas de verificação
+- **Restrições de segurança**: Apenas autor da doação ou administradores podem gerar certificados
+- **Impressão corrigida**: Funcionalidade de imprimir certificados totalmente funcional
+
+### 🔧 Correções Críticas de Interface
+- **RESOLVIDO**: Erro 404 ao consultar lançamentos nas views públicas
+- **Modais AJAX**: Substituídos redirecionamentos problemáticos por modais fluidos
+- **Experiência melhorada**: Consultas e visualizações sem mudança de página
+- **Compatibilidade**: Funções JavaScript organizadas para melhor integração
+
+### 🔐 Sistema de Verificação
+- **Autenticidade garantida**: Verificação via número do certificado
+- **QR Code funcional**: Links diretos para verificação
+- **Interface dedicada**: Página específica para verificações públicas
+- **Verificação automática**: Suporte a URLs com parâmetros de verificação
+
+## 📋 Novidades da v1.1.0
 
 ### 🏦 PIX Totalmente Integrado
 - **Configuração no admin**: Configure sua chave PIX e nome do beneficiário nas configurações
@@ -88,7 +109,8 @@ gestao-coletiva/
 ├── public/views/                # Interface pública (shortcodes)
 │   ├── painel.php              # Painel principal público
 │   ├── lancamentos.php         # Interface de lançamentos públicos
-│   └── livro-caixa.php         # Livro-caixa público
+│   ├── livro-caixa.php         # Livro-caixa público
+│   └── verificar-certificado.php # Verificação de autenticidade
 ├── assets/                      # CSS e JavaScript
 │   ├── css/                    # Estilos para admin e público
 │   │   ├── admin.css
@@ -122,6 +144,13 @@ Livro-caixa público com:
 - Gráfico de evolução do saldo
 - Lista detalhada de movimentações
 - Resumo financeiro do período
+
+### `[gc_verificar_certificado]` 🆕
+Sistema de verificação de autenticidade:
+- Formulário para inserir número do certificado
+- Verificação automática via URL
+- Validação de autenticidade em tempo real
+- Exibição completa dos dados do certificado
 
 ## Estados dos Lançamentos
 
@@ -211,6 +240,7 @@ add_filter('gc_pode_criar_lancamento', function($pode, $user_id, $tipo) {
 ### Permissões
 - **Receitas/Doações**: Usuários logados (authors+ ou filtro personalizado)
 - **Despesas**: Apenas administradores (manage_options)
+- **Certificados**: Apenas autor da doação ou administradores
 - **Contestações**: Usuários logados
 - **Administração**: Apenas administrators
 - **Verificação**: Nonces em todas ações AJAX
@@ -256,42 +286,7 @@ GPL/GNU 3.0 - Licença Pública Geral GNU versão 3.0.
 
 ## Changelog
 
-### v1.0.2
-- 🐛 **CORREÇÃO CRÍTICA**: Lógica de estados nas contestações
-  - Contestações procedentes agora marcam lançamento como "CONTESTADO"
-  - Contestações improcedentes mantêm lançamento como "CONFIRMADO"
-  - Interface administrativa com opções claras sobre impacto da decisão
-- 🔧 **FUNCIONALIDADE**: Sistema de contestações totalmente funcional
-  - Botão "Nova Contestação" no admin funcionando
-  - Botão "Contestar" em lançamentos funcionando
-  - Modal de resposta com lógica corrigida
-- ✅ **VALIDAÇÃO**: Fluxo completo de contestação testado e aprovado
-  - Criação → Resposta → Análise → Resolução
-  - Estados corretos em todas as etapas
-  - Permissões mantidas (apenas usuários logados)
-
-### v1.0.1
-- 🔒 **SEGURANÇA**: Restrição de permissões para registro de despesas
-  - Apenas administradores podem registrar despesas
-  - Receitas/doações continuam permitidas para authors+ ou filtro personalizado
-- 📝 Atualização de informações do projeto
-  - Correção da licença para GPL/GNU 3.0
-  - Atualização de autor e repositório GitHub
-- 🎨 Melhoria na interface
-  - Botões de "Incluir Despesa" visíveis apenas para administradores
-- 📚 Documentação atualizada
-  - Estrutura de arquivos mais detalhada
-  - Seção de permissões clarificada
-
-### v1.0.0
-- ✅ Lançamento inicial
-- ✅ Sistema completo de lançamentos
-- ✅ Sistema de contestações
-- ✅ Livro-caixa público
-- ✅ Certificados de doação
-- ✅ Interface administrativa completa
-- ✅ Processamento automático via cron
-- ✅ Internacionalização (i18n)
+Veja o arquivo [CHANGELOG.md](CHANGELOG.md) para histórico completo de todas as versões.
 
 ---
 

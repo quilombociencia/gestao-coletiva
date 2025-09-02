@@ -85,7 +85,7 @@ class GC_Contestacao {
         return $wpdb->get_results($sql);
     }
     
-    public static function responder($id, $resposta, $novo_estado) {
+    public static function responder($id, $resposta, $novo_estado, $correcoes = array()) {
         global $wpdb;
         
         $table_name = $wpdb->prefix . 'gc_contestacoes';
@@ -108,6 +108,32 @@ class GC_Contestacao {
             // Atualizar estado do lançamento baseado na decisão
             if ($novo_estado === 'procedente') {
                 // Contestação PROCEDENTE: admin concorda que há erro no lançamento
+                
+                // Aplicar correções se fornecidas
+                if (!empty($correcoes)) {
+                    $lancamento_atual = GC_Lancamento::obter($contestacao->lancamento_id);
+                    
+                    foreach ($correcoes as $campo => $valor_novo) {
+                        if (in_array($campo, ['valor', 'descricao_curta', 'descricao_detalhada'])) {
+                            $valor_anterior = $lancamento_atual->$campo;
+                            if ($valor_anterior != $valor_novo) {
+                                // Registrar no histórico
+                                GC_Lancamento::registrar_alteracao(
+                                    $contestacao->lancamento_id, 
+                                    $campo, 
+                                    $valor_anterior, 
+                                    $valor_novo, 
+                                    'contestacao_admin', 
+                                    $id
+                                );
+                            }
+                        }
+                    }
+                    
+                    // Aplicar as correções
+                    GC_Lancamento::atualizar($contestacao->lancamento_id, $correcoes);
+                }
+                
                 GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'contestado');
                 // Atualizar estado da contestação para 'respondida' para seguir fluxo
                 $wpdb->update(
@@ -155,7 +181,28 @@ class GC_Contestacao {
         
         if ($result !== false) {
             if ($aceitar) {
-                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'aceito');
+                // Se aceita a resposta, verificar se a contestação foi procedente ou improcedente
+                if ($contestacao->estado === 'respondida') {
+                    // Obter a contestação atualizada para verificar como foi respondida
+                    $contestacao_atualizada = self::obter($id);
+                    
+                    // Se o admin marcou como procedente, e o contestante aceita, lançamento vai para contestado
+                    // Se o admin marcou como improcedente, e o contestante aceita, lançamento vai para aceito (confirmado)
+                    
+                    // Para saber se foi procedente/improcedente, verificar o estado atual do lançamento
+                    $lancamento_atual = GC_Lancamento::obter($contestacao->lancamento_id);
+                    
+                    if ($lancamento_atual->estado === 'contestado') {
+                        // Admin já marcou como procedente, mantém contestado
+                        // Não muda o estado do lançamento
+                    } elseif ($lancamento_atual->estado === 'confirmado') {
+                        // Admin marcou como improcedente, contestante aceita = aceito
+                        GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'aceito');
+                    }
+                } else {
+                    // Fallback - se não conseguir determinar, manter aceito (comportamento anterior)
+                    GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'aceito');
+                }
             } else {
                 GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'em_disputa');
             }
@@ -285,11 +332,11 @@ class GC_Contestacao {
             
             // Atualizar estado do lançamento baseado no resultado da votação
             if ($resultado_votacao === 'contestacao_procedente') {
-                // Comunidade decidiu que a contestação é procedente
-                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'retificado_comunidade');
-            } else {
-                // Comunidade decidiu que a contestação é improcedente
+                // Comunidade decidiu que a contestação é procedente - lançamento deve ser contestado
                 GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'contestado_comunidade');
+            } else {
+                // Comunidade decidiu que a contestação é improcedente - lançamento é confirmado
+                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'retificado_comunidade');
             }
             
             return array(
@@ -483,11 +530,12 @@ class GC_Contestacao {
         foreach ($pendentes_vencidas as $contestacao) {
             $wpdb->update(
                 $table_name,
-                array('estado' => 'aceita', 'data_analise' => $agora),
+                array('estado' => 'expirada', 'data_analise' => $agora),
                 array('id' => $contestacao->id)
             );
             
-            GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'contestado');
+            // Contestação sem resposta expira, lançamento volta ao estado anterior (efetivado)
+            GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'efetivado');
             $total_processadas++;
         }
         
@@ -504,7 +552,17 @@ class GC_Contestacao {
                 array('id' => $contestacao->id)
             );
             
-            GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'aceito');
+            // Verificar estado atual do lançamento para determinar se a resposta foi procedente/improcedente
+            $lancamento_atual = GC_Lancamento::obter($contestacao->lancamento_id);
+            
+            if ($lancamento_atual->estado === 'contestado') {
+                // Admin marcou como procedente, mantém contestado
+                // Não altera estado do lançamento
+            } elseif ($lancamento_atual->estado === 'confirmado') {
+                // Admin marcou como improcedente, por vencimento aceita = aceito
+                GC_Lancamento::atualizar_estado($contestacao->lancamento_id, 'aceito');
+            }
+            
             $total_processadas++;
         }
         

@@ -55,6 +55,21 @@ $tipo_default = isset($_GET['tipo']) ? sanitize_text_field($_GET['tipo']) : 'rec
                 </td>
             </tr>
             
+            <tr id="tr-doacao-anonima" style="display: none;">
+                <th scope="row">
+                    <label for="doacao_anonima"><?php _e('Doação Anônima', 'gestao-coletiva'); ?></label>
+                </th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="doacao_anonima" id="doacao_anonima" value="1">
+                        <?php _e('Não mostrar meu nome publicamente nesta doação', 'gestao-coletiva'); ?>
+                    </label>
+                    <div id="aviso-limite-anonimo" class="notice notice-info" style="display: none; margin-top: 10px; padding: 10px;">
+                        <p id="texto-aviso-limite"></p>
+                    </div>
+                </td>
+            </tr>
+            
             <tr>
                 <th scope="row">
                     <label for="recorrencia"><?php _e('Recorrência', 'gestao-coletiva'); ?></label>
@@ -122,12 +137,69 @@ jQuery(document).ready(function($) {
         
         if (tipo === 'despesa') {
             $('#tr-anexos').show();
+            $('#tr-doacao-anonima').hide();
             $('#instrucoes-doacao').hide();
         } else {
             $('#tr-anexos').hide();
+            $('#tr-doacao-anonima').show();
             $('#instrucoes-doacao').show();
+            verificarLimiteAnonimo();
         }
     }).trigger('change');
+    
+    // Verificar limite de doação anônima quando valor mudar
+    $('#valor').on('input change', function() {
+        if ($('#tipo').val() === 'receita') {
+            verificarLimiteAnonimo();
+        }
+    });
+    
+    function verificarLimiteAnonimo() {
+        var valor = parseFloat($('#valor').val()) || 0;
+        
+        if (valor <= 0) {
+            $('#aviso-limite-anonimo').hide();
+            $('#doacao_anonima').prop('disabled', false);
+            return;
+        }
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'gc_verificar_limite_anonimo',
+                valor: valor,
+                nonce: gc_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    var dados = response.data;
+                    var $checkbox = $('#doacao_anonima');
+                    var $aviso = $('#aviso-limite-anonimo');
+                    var $textoAviso = $('#texto-aviso-limite');
+                    
+                    if (!dados.pode_anonimo) {
+                        $checkbox.prop('disabled', true).prop('checked', false);
+                        $aviso.show().removeClass('notice-info').addClass('notice-warning');
+                        
+                        if (dados.excede_limite_valor) {
+                            $textoAviso.html('<strong>⚠️ Doação será identificada publicamente</strong><br>' +
+                                'Doações acima de R$ ' + parseFloat(dados.valor_maximo).toFixed(2).replace('.', ',') + ' têm identificação obrigatória.');
+                        } else if (dados.excede_limite_mensal) {
+                            $textoAviso.html('<strong>⚠️ Limite mensal de doações anônimas excedido</strong><br>' +
+                                'Você já doou R$ ' + parseFloat(dados.total_mes).toFixed(2).replace('.', ',') + ' anonimamente este mês. ' +
+                                'Limite mensal: R$ ' + parseFloat(dados.valor_maximo).toFixed(2).replace('.', ',') + '.');
+                        }
+                    } else {
+                        $checkbox.prop('disabled', false);
+                        $aviso.show().removeClass('notice-warning').addClass('notice-info');
+                        $textoAviso.html('<strong>ℹ️ Doação pode ser anônima</strong><br>' +
+                            'Você pode doar R$ ' + parseFloat(dados.limite_restante).toFixed(2).replace('.', ',') + ' anonimamente ainda este mês.');
+                    }
+                }
+            }
+        });
+    }
     
     // Submissão do formulário
     $('#gc-form-lancamento').on('submit', function(e) {

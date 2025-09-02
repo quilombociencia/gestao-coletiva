@@ -10,6 +10,7 @@ if (!$lancamento) {
 
 $autor = get_user_by('ID', $lancamento->autor_id);
 $pode_editar = GC_Lancamento::pode_editar($id);
+$contador_contestacoes = GC_Lancamento::contar_contestacoes($id);
 ?>
 
 <div class="wrap">
@@ -45,8 +46,13 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                             <th scope="row"><?php _e('Estado:', 'gestao-coletiva'); ?></th>
                             <td>
                                 <span class="gc-badge gc-estado-<?php echo $lancamento->estado; ?>">
-                                    <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                                    <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                                 </span>
+                                <?php if ($contador_contestacoes > 0): ?>
+                                    <br><small style="color: #d63638;">
+                                        <?php printf(_n('%d contestação', '%d contestações', $contador_contestacoes, 'gestao-coletiva'), $contador_contestacoes); ?>
+                                    </small>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <tr>
@@ -189,7 +195,13 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                     <?php 
                     // Estados que permitem gerar certificado
                     $estados_certificado = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
-                    if (in_array($lancamento->estado, $estados_certificado) && $lancamento->tipo === 'receita'): 
+                    $user_id = get_current_user_id();
+                    $eh_autor = ($lancamento->autor_id == $user_id);
+                    $eh_admin = current_user_can('manage_options');
+                    $pode_gerar = in_array($lancamento->estado, $estados_certificado) && 
+                                $lancamento->tipo === 'receita' && 
+                                ($eh_autor || $eh_admin);
+                    if ($pode_gerar): 
                     ?>
                         <button type="button" class="button gc-gerar-certificado" data-id="<?php echo $id; ?>">
                             <?php _e('Gerar Certificado', 'gestao-coletiva'); ?>
@@ -206,6 +218,12 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                         
                         <button type="button" class="button gc-ver-serie-recorrencia" data-id="<?php echo $id; ?>">
                             <?php _e('Ver Série Completa', 'gestao-coletiva'); ?>
+                        </button>
+                    <?php endif; ?>
+                    
+                    <?php if ($contador_contestacoes > 0): ?>
+                        <button type="button" class="button gc-ver-contestacoes-lancamento" data-id="<?php echo $id; ?>">
+                            <?php _e('Ver Contestações', 'gestao-coletiva'); ?> (<?php echo $contador_contestacoes; ?>)
                         </button>
                     <?php endif; ?>
                     
@@ -245,11 +263,11 @@ $pode_editar = GC_Lancamento::pode_editar($id);
                 <tbody>
                     <?php foreach ($contestacoes as $contestacao): ?>
                     <tr>
-                        <td><?php echo ($contestacao->tipo == 'doacao_nao_contabilizada') ? __('Doação não contabilizada', 'gestao-coletiva') : __('Despesa não verificada', 'gestao-coletiva'); ?></td>
+                        <td><?php echo gc_obter_nome_tipo_contestacao($contestacao->tipo); ?></td>
                         <td><?php echo esc_html(wp_trim_words($contestacao->descricao, 15)); ?></td>
                         <td>
                             <span class="gc-badge gc-contestacao-<?php echo $contestacao->estado; ?>">
-                                <?php echo esc_html(ucfirst(str_replace('_', ' ', $contestacao->estado))); ?>
+                                <?php echo esc_html(gc_estado_para_texto($contestacao->estado)); ?>
                             </span>
                         </td>
                         <td><?php echo date('d/m/Y H:i', strtotime($contestacao->data_criacao)); ?></td>

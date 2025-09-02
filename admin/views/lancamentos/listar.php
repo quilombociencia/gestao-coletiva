@@ -82,6 +82,7 @@ $lancamentos = GC_Lancamento::listar($filtros);
             <?php foreach ($lancamentos as $lancamento): 
                 $autor = get_user_by('ID', $lancamento->autor_id);
                 $prazo_vencido = strtotime($lancamento->prazo_atual) < time();
+                $contador_contestacoes = GC_Lancamento::contar_contestacoes($lancamento->id);
             ?>
             <tr>
                 <td>
@@ -102,8 +103,13 @@ $lancamentos = GC_Lancamento::listar($filtros);
                 </td>
                 <td>
                     <span class="gc-badge gc-estado-<?php echo $lancamento->estado; ?>">
-                        <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                        <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                     </span>
+                    <?php if ($contador_contestacoes > 0): ?>
+                        <br><small style="color: #d63638;">
+                            <?php printf(_n('%d contestação', '%d contestações', $contador_contestacoes, 'gestao-coletiva'), $contador_contestacoes); ?>
+                        </small>
+                    <?php endif; ?>
                 </td>
                 <td><?php echo $autor ? esc_html($autor->display_name) : __('Usuário removido', 'gestao-coletiva'); ?></td>
                 <td><?php echo date('d/m/Y H:i', strtotime($lancamento->data_criacao)); ?></td>
@@ -133,6 +139,12 @@ $lancamentos = GC_Lancamento::listar($filtros);
                         <a href="<?php echo admin_url('admin.php?page=gc-lancamentos&action=editar&id=' . $lancamento->id); ?>" class="button button-small">
                             <?php _e('Editar', 'gestao-coletiva'); ?>
                         </a>
+                    <?php endif; ?>
+                    
+                    <?php if ($contador_contestacoes > 0): ?>
+                        <button type="button" class="button button-small gc-ver-contestacoes-lancamento" data-id="<?php echo $lancamento->id; ?>">
+                            <?php _e('Ver Contestações', 'gestao-coletiva'); ?> (<?php echo $contador_contestacoes; ?>)
+                        </button>
                     <?php endif; ?>
                     
                     <?php if (current_user_can('manage_options') && $lancamento->estado == 'previsto'): ?>

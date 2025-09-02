@@ -84,10 +84,27 @@ $autor = get_user_by('ID', $lancamento->autor_id);
                     <label for="valor"><?php _e('Valor', 'gestao-coletiva'); ?> *</label>
                 </th>
                 <td>
-                    <input type="number" name="valor" id="valor" value="<?php echo esc_attr($lancamento->valor); ?>" step="0.01" min="0" required class="gc-input-valor">
+                    <input type="number" name="valor" id="valor" value="<?php echo esc_attr($lancamento->valor); ?>" step="0.01" min="0" required class="regular-text">
                     <p class="description"><?php _e('Valor em reais (R$)', 'gestao-coletiva'); ?></p>
                 </td>
             </tr>
+            
+            <?php if ($lancamento->tipo === 'receita'): ?>
+            <tr>
+                <th scope="row">
+                    <label for="doacao_anonima"><?php _e('Doação Anônima', 'gestao-coletiva'); ?></label>
+                </th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="doacao_anonima" id="doacao_anonima" value="1" <?php checked($lancamento->doacao_anonima ?? false); ?>>
+                        <?php _e('Não mostrar nome do autor publicamente', 'gestao-coletiva'); ?>
+                    </label>
+                    <div id="aviso-limite-anonimo" class="notice" style="margin-top: 10px; padding: 10px;">
+                        <p id="texto-aviso-limite"></p>
+                    </div>
+                </td>
+            </tr>
+            <?php endif; ?>
             
             <tr>
                 <th scope="row">
@@ -152,7 +169,7 @@ $autor = get_user_by('ID', $lancamento->autor_id);
                 <td>
                     <p><strong><?php _e('Estado atual:', 'gestao-coletiva'); ?></strong> 
                         <span class="gc-badge gc-estado-<?php echo $lancamento->estado; ?>">
-                            <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                            <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                         </span>
                     </p>
                     <p><strong><?php _e('Autor:', 'gestao-coletiva'); ?></strong> <?php echo $autor ? esc_html($autor->display_name) : __('Usuário removido', 'gestao-coletiva'); ?></p>
@@ -206,6 +223,58 @@ jQuery(document).ready(function($) {
             }
         });
     });
+    
+    // Verificar limite de doação anônima quando valor mudar (apenas receitas)
+    <?php if ($lancamento->tipo === 'receita'): ?>
+    $('#valor').on('input change', function() {
+        verificarLimiteAnonimoEdicao();
+    });
+    
+    function verificarLimiteAnonimoEdicao() {
+        var valor = parseFloat($('#valor').val()) || 0;
+        var lancamentoId = <?php echo $id; ?>;
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'gc_verificar_limite_anonimo',
+                valor: valor,
+                lancamento_id: lancamentoId,
+                nonce: '<?php echo wp_create_nonce('gc_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    var dados = response.data;
+                    var $checkbox = $('#doacao_anonima');
+                    var $aviso = $('#aviso-limite-anonimo');
+                    var $textoAviso = $('#texto-aviso-limite');
+                    
+                    if (!dados.pode_anonimo) {
+                        $checkbox.prop('disabled', true).prop('checked', false);
+                        $aviso.show().removeClass('notice-info').addClass('notice-warning');
+                        
+                        if (dados.excede_limite_valor) {
+                            $textoAviso.html('<strong>⚠️ Doação será identificada publicamente</strong><br>' +
+                                'Doações acima de R$ ' + parseFloat(dados.valor_maximo).toFixed(2).replace('.', ',') + ' têm identificação obrigatória.');
+                        } else if (dados.excede_limite_mensal) {
+                            $textoAviso.html('<strong>⚠️ Limite mensal excedido</strong><br>' +
+                                'Alterar para este valor excederia o limite mensal de doações anônimas.');
+                        }
+                    } else {
+                        $checkbox.prop('disabled', false);
+                        $aviso.show().removeClass('notice-warning').addClass('notice-info');
+                        $textoAviso.html('<strong>ℹ️ Doação pode ser anônima</strong><br>' +
+                            'Limite restante este mês: R$ ' + parseFloat(dados.limite_restante).toFixed(2).replace('.', ','));
+                    }
+                }
+            }
+        });
+    }
+    
+    // Verificar limite inicial
+    verificarLimiteAnonimoEdicao();
+    <?php endif; ?>
     
     // Confirmar remoção de anexos
     $('input[name="remover_anexos[]"]').on('change', function() {

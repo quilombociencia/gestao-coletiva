@@ -41,6 +41,12 @@ class GC_Admin {
         add_action('wp_ajax_gc_ver_contestacao', array($this, 'ajax_ver_contestacao'));
         add_action('wp_ajax_gc_cancelar_recorrencia', array($this, 'ajax_cancelar_recorrencia'));
         add_action('wp_ajax_gc_corrigir_inconsistencias', array($this, 'ajax_corrigir_inconsistencias'));
+        add_action('wp_ajax_gc_obter_tipo_lancamento', array($this, 'ajax_obter_tipo_lancamento'));
+        add_action('wp_ajax_nopriv_gc_obter_tipo_lancamento', array($this, 'ajax_obter_tipo_lancamento'));
+        add_action('wp_ajax_gc_listar_contestacoes_lancamento', array($this, 'ajax_listar_contestacoes_lancamento'));
+        add_action('wp_ajax_nopriv_gc_listar_contestacoes_lancamento', array($this, 'ajax_listar_contestacoes_lancamento'));
+        add_action('wp_ajax_gc_verificar_limite_anonimo', array($this, 'ajax_verificar_limite_anonimo'));
+        add_action('wp_ajax_nopriv_gc_verificar_limite_anonimo', array($this, 'ajax_verificar_limite_anonimo'));
         
         if (!wp_next_scheduled('gc_processar_vencimentos')) {
             wp_schedule_event(time(), 'hourly', 'gc_processar_vencimentos');
@@ -281,6 +287,16 @@ class GC_Admin {
             'recorrencia' => isset($_POST['recorrencia']) ? sanitize_text_field($_POST['recorrencia']) : $lancamento->recorrencia
         );
         
+        // Para receitas, verificar opção de doação anônima
+        if ($dados_atualizacao['tipo'] === 'receita') {
+            $doacao_anonima = isset($_POST['doacao_anonima']) && $_POST['doacao_anonima'];
+            // Verificar se ainda pode ser anônima com o novo valor
+            if ($doacao_anonima && !gc_pode_doacao_anonima($dados_atualizacao['valor'], $lancamento->autor_id)) {
+                $doacao_anonima = false;
+            }
+            $dados_atualizacao['doacao_anonima'] = $doacao_anonima ? 1 : 0;
+        }
+        
         // Processar anexos existentes (remoções)
         $anexos_atuais = $lancamento->anexos ? (is_array($lancamento->anexos) ? $lancamento->anexos : json_decode($lancamento->anexos, true)) : array();
         $remover_anexos = isset($_POST['remover_anexos']) ? array_map('intval', $_POST['remover_anexos']) : array();
@@ -397,8 +413,20 @@ class GC_Admin {
             return;
         }
         
+        $lancamento_id = intval($_POST['lancamento_id']);
+        
+        // Verificar se ainda é possível contestar (limite de contestações)
+        if (!GC_Lancamento::pode_contestar($lancamento_id)) {
+            $limite = GC_Database::get_setting('limite_contestacoes_por_lancamento');
+            $mensagem = $limite 
+                ? sprintf(__('Este lançamento já atingiu o limite máximo de %d contestações.', 'gestao-coletiva'), $limite)
+                : __('Este lançamento não pode mais ser contestado.', 'gestao-coletiva');
+            wp_send_json_error($mensagem);
+            return;
+        }
+        
         $dados = array(
-            'lancamento_id' => intval($_POST['lancamento_id']),
+            'lancamento_id' => $lancamento_id,
             'tipo' => sanitize_text_field($_POST['tipo']),
             'descricao' => sanitize_textarea_field($_POST['descricao'])
         );
@@ -438,7 +466,19 @@ class GC_Admin {
         $resposta = sanitize_textarea_field($_POST['resposta']);
         $novo_estado = sanitize_text_field($_POST['novo_estado']);
         
-        $resultado = GC_Contestacao::responder($contestacao_id, $resposta, $novo_estado);
+        // Capturar correções se fornecidas
+        $correcoes = array();
+        if (isset($_POST['corrigir_valor']) && !empty($_POST['novo_valor'])) {
+            $correcoes['valor'] = floatval($_POST['novo_valor']);
+        }
+        if (isset($_POST['corrigir_descricao']) && !empty($_POST['nova_descricao_curta'])) {
+            $correcoes['descricao_curta'] = sanitize_text_field($_POST['nova_descricao_curta']);
+        }
+        if (isset($_POST['corrigir_detalhes']) && !empty($_POST['nova_descricao_detalhada'])) {
+            $correcoes['descricao_detalhada'] = sanitize_textarea_field($_POST['nova_descricao_detalhada']);
+        }
+        
+        $resultado = GC_Contestacao::responder($contestacao_id, $resposta, $novo_estado, $correcoes);
         
         if ($resultado === false) {
             wp_send_json_error(__('Erro ao responder contestação', 'gestao-coletiva'));
@@ -526,6 +566,8 @@ class GC_Admin {
             'prazo_analise_resposta_horas',
             'prazo_publicacao_disputa_horas',
             'prazo_resolucao_disputa_dias',
+            'limite_contestacoes_por_lancamento',
+            'valor_maximo_doacao_anonima',
             'texto_agradecimento_certificado',
             'chave_pix',
             'nome_beneficiario_pix'
@@ -616,6 +658,32 @@ class GC_Admin {
         );
         
         wp_send_json_success($verificacao);
+    }
+    
+    public function ajax_obter_tipo_lancamento() {
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'gc_nonce')) {
+            wp_send_json_error(__('Nonce inválido', 'gestao-coletiva'));
+            return;
+        }
+        
+        $id = intval($_POST['id']);
+        
+        if (empty($id)) {
+            wp_send_json_error(__('ID do lançamento não informado', 'gestao-coletiva'));
+            return;
+        }
+        
+        $lancamento = GC_Lancamento::obter($id);
+        
+        if (!$lancamento) {
+            wp_send_json_error(__('Lançamento não encontrado', 'gestao-coletiva'));
+            return;
+        }
+        
+        wp_send_json_success(array(
+            'tipo' => $lancamento->tipo,
+            'numero_unico' => $lancamento->numero_unico
+        ));
     }
     
     public function ajax_buscar_lancamento() {
@@ -1032,5 +1100,63 @@ class GC_Admin {
         );
         
         wp_send_json_success($message);
+    }
+    
+    public function ajax_listar_contestacoes_lancamento() {
+        check_ajax_referer('gc_nonce', 'nonce');
+        
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Acesso negado', 'gestao-coletiva'));
+            return;
+        }
+        
+        $lancamento_id = intval($_POST['lancamento_id']);
+        
+        if (!$lancamento_id) {
+            wp_send_json_error(__('ID do lançamento não informado', 'gestao-coletiva'));
+            return;
+        }
+        
+        $lancamento = GC_Lancamento::obter($lancamento_id);
+        if (!$lancamento) {
+            wp_send_json_error(__('Lançamento não encontrado', 'gestao-coletiva'));
+            return;
+        }
+        
+        $contestacoes = GC_Contestacao::listar(array('lancamento_id' => $lancamento_id));
+        
+        // Adicionar nome do autor para cada contestação
+        foreach ($contestacoes as $contestacao) {
+            $autor = get_user_by('ID', $contestacao->autor_id);
+            $contestacao->autor_nome = $autor ? $autor->display_name : __('Usuário removido', 'gestao-coletiva');
+        }
+        
+        $dados = array(
+            'lancamento' => $lancamento,
+            'contestacoes' => $contestacoes
+        );
+        
+        wp_send_json_success($dados);
+    }
+    
+    public function ajax_verificar_limite_anonimo() {
+        $valor = floatval($_POST['valor']);
+        $autor_id = isset($_POST['autor_id']) ? intval($_POST['autor_id']) : get_current_user_id();
+        
+        $pode_anonimo = gc_pode_doacao_anonima($valor, $autor_id);
+        $valor_maximo = GC_Database::get_setting('valor_maximo_doacao_anonima');
+        $total_mes = gc_obter_total_doacoes_anonimas_mes($autor_id);
+        $limite_restante = empty($valor_maximo) ? 0 : (floatval($valor_maximo) - $total_mes);
+        
+        $dados = array(
+            'pode_anonimo' => $pode_anonimo,
+            'valor_maximo' => $valor_maximo,
+            'total_mes' => $total_mes,
+            'limite_restante' => max(0, $limite_restante),
+            'excede_limite_valor' => !empty($valor_maximo) && $valor > floatval($valor_maximo),
+            'excede_limite_mensal' => !empty($valor_maximo) && ($total_mes + $valor) > floatval($valor_maximo)
+        );
+        
+        wp_send_json_success($dados);
     }
 }

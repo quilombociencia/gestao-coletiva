@@ -14,6 +14,8 @@ $configuracoes = array(
     'prazo_analise_resposta_horas' => GC_Database::get_setting('prazo_analise_resposta_horas'),
     'prazo_publicacao_disputa_horas' => GC_Database::get_setting('prazo_publicacao_disputa_horas'),
     'prazo_resolucao_disputa_dias' => GC_Database::get_setting('prazo_resolucao_disputa_dias'),
+    'limite_contestacoes_por_lancamento' => GC_Database::get_setting('limite_contestacoes_por_lancamento'),
+    'valor_maximo_doacao_anonima' => GC_Database::get_setting('valor_maximo_doacao_anonima') ?: '100.00',
     'texto_agradecimento_certificado' => GC_Database::get_setting('texto_agradecimento_certificado'),
     'chave_pix' => GC_Database::get_setting('chave_pix'),
     'nome_beneficiario_pix' => GC_Database::get_setting('nome_beneficiario_pix')
@@ -167,6 +169,54 @@ $configuracoes = array(
                            class="small-text">
                     <p class="description">
                         <?php _e('Tempo em dias para votação da comunidade sobre disputas publicadas.', 'gestao-coletiva'); ?>
+                    </p>
+                </td>
+            </tr>
+        </table>
+        
+        <h2><?php _e('Limites de Contestações', 'gestao-coletiva'); ?></h2>
+        <p class="description">
+            <?php _e('Configure as limitações para o sistema de contestações.', 'gestao-coletiva'); ?>
+        </p>
+        
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="limite_contestacoes_por_lancamento">
+                        <?php _e('Limite de Contestações por Lançamento', 'gestao-coletiva'); ?>
+                    </label>
+                </th>
+                <td>
+                    <input type="number" 
+                           name="limite_contestacoes_por_lancamento" 
+                           id="limite_contestacoes_por_lancamento" 
+                           value="<?php echo esc_attr($configuracoes['limite_contestacoes_por_lancamento']); ?>" 
+                           min="1" 
+                           class="small-text"
+                           placeholder="<?php _e('Deixe em branco para ilimitado', 'gestao-coletiva'); ?>">
+                    <p class="description">
+                        <?php _e('Número máximo de contestações que um lançamento pode receber. Deixe em branco para permitir contestações ilimitadas.', 'gestao-coletiva'); ?>
+                    </p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    <label for="valor_maximo_doacao_anonima">
+                        <?php _e('Valor Máximo para Doações Anônimas (R$)', 'gestao-coletiva'); ?>
+                    </label>
+                </th>
+                <td>
+                    <input type="number" 
+                           name="valor_maximo_doacao_anonima" 
+                           id="valor_maximo_doacao_anonima" 
+                           value="<?php echo esc_attr($configuracoes['valor_maximo_doacao_anonima']); ?>" 
+                           min="0" 
+                           step="0.01"
+                           class="small-text"
+                           placeholder="<?php _e('Deixe em branco para permitir todas', 'gestao-coletiva'); ?>">
+                    <p class="description">
+                        <?php _e('Doações acima deste valor terão a autoria sempre visível publicamente. Despesas sempre mostram autoria. Deixe em branco para permitir doações anônimas de qualquer valor.', 'gestao-coletiva'); ?>
                     </p>
                 </td>
             </tr>

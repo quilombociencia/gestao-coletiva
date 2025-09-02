@@ -138,7 +138,7 @@ $contestacoes_pendentes = GC_Contestacao::obter_pendentes_por_usuario();
                             </td>
                             <td>
                                 <span class="gc-estado gc-estado-<?php echo $lancamento->estado; ?>">
-                                    <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                                    <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                                 </span>
                             </td>
                             <td><?php echo date('d/m/Y H:i', strtotime($lancamento->data_criacao)); ?></td>

@@ -5,8 +5,15 @@ if (!defined('ABSPATH')) {
 
 $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : 'listar';
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$lancamento_id = isset($_GET['lancamento_id']) ? intval($_GET['lancamento_id']) : 0;
 
-$contestacoes = GC_Contestacao::listar();
+// Se filtrar por lançamento específico
+$filtros = array();
+if ($lancamento_id) {
+    $filtros['lancamento_id'] = $lancamento_id;
+}
+
+$contestacoes = GC_Contestacao::listar($filtros);
 $disputas_pendentes = GC_Contestacao::obter_disputas_pendentes();
 $disputas_finalizadas = GC_Contestacao::obter_disputas_finalizadas();
 ?>
@@ -14,9 +21,21 @@ $disputas_finalizadas = GC_Contestacao::obter_disputas_finalizadas();
 <div class="wrap">
     <h1>
         <?php _e('Contestações', 'gestao-coletiva'); ?>
-        <a href="#" class="page-title-action" id="btn-nova-contestacao">
-            <?php _e('Nova Contestação', 'gestao-coletiva'); ?>
-        </a>
+        <?php if ($lancamento_id): ?>
+            <?php 
+            $lancamento = GC_Lancamento::obter($lancamento_id);
+            if ($lancamento): 
+            ?>
+                - Lançamento #<?php echo esc_html($lancamento->numero_unico); ?>
+                <a href="<?php echo admin_url('admin.php?page=gc-contestacoes'); ?>" class="page-title-action">
+                    <?php _e('Ver Todas', 'gestao-coletiva'); ?>
+                </a>
+            <?php endif; ?>
+        <?php else: ?>
+            <a href="#" class="page-title-action" id="btn-nova-contestacao">
+                <?php _e('Nova Contestação', 'gestao-coletiva'); ?>
+            </a>
+        <?php endif; ?>
     </h1>
     
     <?php if (!empty($contestacoes)): ?>
@@ -41,7 +60,7 @@ $disputas_finalizadas = GC_Contestacao::obter_disputas_finalizadas();
                     <strong>#<?php echo esc_html($contestacao->numero_unico); ?></strong><br>
                     <small><?php echo esc_html($contestacao->lancamento_descricao); ?></small>
                 </td>
-                <td><?php echo ($contestacao->tipo == 'doacao_nao_contabilizada') ? __('Doação não contabilizada', 'gestao-coletiva') : __('Despesa não verificada', 'gestao-coletiva'); ?></td>
+                <td><?php echo gc_obter_nome_tipo_contestacao($contestacao->tipo); ?></td>
                 <td><?php echo esc_html(wp_trim_words($contestacao->descricao, 10)); ?></td>
                 <td>
                     <span class="gc-badge gc-contestacao-<?php echo $contestacao->estado; ?>">

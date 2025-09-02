@@ -63,7 +63,7 @@ if (!empty($numero)) {
                             <div class="gc-info-item">
                                 <strong><?php _e('Estado:', 'gestao-coletiva'); ?></strong>
                                 <span class="gc-badge gc-estado-<?php echo $lancamento->estado; ?>">
-                                    <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                                    <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                                 </span>
                             </div>
                             
@@ -109,7 +109,17 @@ if (!empty($numero)) {
                                 </a>
                             <?php endif; ?>
                             
-                            <?php if ($lancamento->estado === 'efetivado' && $lancamento->tipo === 'receita'): ?>
+                            <?php 
+                            // Estados que permitem gerar certificado
+                            $estados_certificado = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
+                            $user_id = get_current_user_id();
+                            $eh_autor = ($lancamento->autor_id == $user_id);
+                            $eh_admin = current_user_can('manage_options');
+                            $pode_gerar = in_array($lancamento->estado, $estados_certificado) && 
+                                        $lancamento->tipo === 'receita' && 
+                                        ($eh_autor || $eh_admin);
+                            if ($pode_gerar): 
+                            ?>
                                 <button type="button" class="button gc-gerar-certificado" data-id="<?php echo $lancamento->id; ?>">
                                     <?php _e('Gerar Certificado', 'gestao-coletiva'); ?>
                                 </button>

@@ -119,11 +119,40 @@ $nome_beneficiario_pix = GC_Database::get_setting('nome_beneficiario_pix');
                     <span class="gc-stat-label"><?php _e('Lançamentos Confirmados', 'gestao-coletiva'); ?></span>
                 </div>
                 <div class="gc-stat">
-                    <span class="gc-stat-numero"><?php echo count(GC_Lancamento::listar(array('recorrencia_ativa' => 1))); ?></span>
+                    <span class="gc-stat-numero"><?php 
+                        $recorrentes_ativas = GC_Lancamento::listar(array(
+                            'recorrencia_ativa' => 1,
+                            'tipo' => 'receita'
+                        ));
+                        // Filtrar apenas doações recorrentes ativas (não pontuais)
+                        $count = 0;
+                        foreach ($recorrentes_ativas as $lancamento) {
+                            if ($lancamento->recorrencia !== 'unica' && $lancamento->recorrencia_ativa == 1) {
+                                $count++;
+                            }
+                        }
+                        echo $count;
+                    ?></span>
                     <span class="gc-stat-label"><?php _e('Doações Recorrentes', 'gestao-coletiva'); ?></span>
                 </div>
                 <div class="gc-stat">
-                    <span class="gc-stat-numero"><?php echo count(GC_Contestacao::listar()); ?></span>
+                    <span class="gc-stat-numero"><?php 
+                        $todas_contestacoes = GC_Contestacao::listar();
+                        $total = count($todas_contestacoes);
+                        
+                        if ($total > 0) {
+                            $resolvidas = 0;
+                            foreach ($todas_contestacoes as $contestacao) {
+                                if (in_array($contestacao->estado, ['aceita', 'rejeitada', 'disputa_finalizada'])) {
+                                    $resolvidas++;
+                                }
+                            }
+                            $porcentagem = round(($resolvidas / $total) * 100);
+                            echo $porcentagem . '%';
+                        } else {
+                            echo '0%';
+                        }
+                    ?></span>
                     <span class="gc-stat-label"><?php _e('Contestações Resolvidas', 'gestao-coletiva'); ?></span>
                 </div>
                 <div class="gc-stat">
@@ -194,7 +223,7 @@ jQuery(document).ready(function($) {
         html += '<p><label><?php _e("Descrição detalhada:", "gestao-coletiva"); ?><br>';
         html += '<textarea name="descricao_detalhada" rows="4" style="width: 100%;"></textarea></label></p>';
         html += '<p><label><?php _e("Valor (R$):", "gestao-coletiva"); ?><br>';
-        html += '<input type="number" name="valor" min="0.01" step="0.01" required class="gc-input-valor" style="width: 100%; font-size: 16px; padding: 10px;"></label></p>';
+        html += '<input type="number" name="valor" min="0.01" step="0.01" required class="regular-text" style="width: 200px;"></label></p>';
         
         if (tipo === 'receita') {
             html += '<div class="gc-instrucoes-pix">';

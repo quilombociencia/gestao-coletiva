@@ -604,6 +604,16 @@
     font-size: 14px;
 }
 
+.gc-badge-success {
+    background: #28a745;
+    color: white;
+}
+
+.gc-badge-error {
+    background: #dc3545;
+    color: white;
+}
+
 .gc-estado-previsto {
     background: #fff3cd;
     color: #856404;

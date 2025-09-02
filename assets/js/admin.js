@@ -1,5 +1,31 @@
 /* Gestão Coletiva - Admin JavaScript */
 
+// Função para converter estados em texto amigável
+function gc_estado_para_texto_js(estado) {
+    var mapeamento = {
+        'previsto': 'Previsto',
+        'efetivado': 'Efetivado',
+        'cancelado': 'Cancelado',
+        'expirado': 'Expirado',
+        'em_contestacao': 'Em Contestação',
+        'contestado': 'Contestado',
+        'confirmado': 'Confirmado',
+        'aceito': 'Aceito',
+        'em_disputa': 'Em Disputa',
+        'retificado_comunidade': 'Confirmado pela Comunidade',
+        'contestado_comunidade': 'Contestado pela Comunidade',
+        'pendente': 'Pendente',
+        'respondida': 'Respondida',
+        'aceita': 'Aceita',
+        'rejeitada': 'Rejeitada',
+        'votacao_aberta': 'Votação Aberta',
+        'disputa_finalizada': 'Disputa Finalizada',
+        'expirada': 'Expirada'
+    };
+    
+    return mapeamento[estado] || estado.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 jQuery(document).ready(function($) {
     
     // Atualizar estado de lançamentos
@@ -174,17 +200,62 @@ jQuery(document).ready(function($) {
         html += '<p><label>Resposta:</label>';
         html += '<textarea name="resposta" rows="5" style="width: 100%;" required></textarea></p>';
         html += '<p><label>Ação:</label>';
-        html += '<select name="novo_estado" required>';
+        html += '<select name="novo_estado" id="resposta-estado" required>';
         html += '<option value="">Selecione...</option>';
         html += '<option value="procedente">Contestação Procedente (lançamento será contestado)</option>';
         html += '<option value="improcedente">Contestação Improcedente (lançamento será confirmado)</option>';
         html += '</select></p>';
+        
+        html += '<div id="correcoes-container" style="display:none; border: 1px solid #ddd; padding: 15px; margin: 10px 0; background: #f9f9f9;">';
+        html += '<h4>Correções (opcional)</h4>';
+        html += '<p><label><input type="checkbox" name="corrigir_valor" id="corrigir-valor"> Corrigir valor</label>';
+        html += '<br><input type="number" name="novo_valor" step="0.01" min="0" style="width: 150px; margin-left: 20px;" disabled></p>';
+        html += '<p><label><input type="checkbox" name="corrigir_descricao" id="corrigir-descricao"> Corrigir descrição breve</label>';
+        html += '<br><input type="text" name="nova_descricao_curta" style="width: 100%; margin-left: 20px;" disabled></p>';
+        html += '<p><label><input type="checkbox" name="corrigir_detalhes" id="corrigir-detalhes"> Corrigir detalhes</label>';
+        html += '<br><textarea name="nova_descricao_detalhada" rows="3" style="width: 100%; margin-left: 20px;" disabled></textarea></p>';
+        html += '</div>';
+        
         html += '<p><button type="submit" class="button button-primary">Enviar Resposta</button>';
         html += ' <button type="button" class="button gc-fechar-modal">Cancelar</button></p>';
         html += '</form>';
         html += '</div>';
         
         gc_abrir_modal(html);
+        
+        // Handlers para campos de correção
+        $('#resposta-estado').on('change', function() {
+            var estado = $(this).val();
+            if (estado === 'procedente') {
+                $('#correcoes-container').show();
+            } else {
+                $('#correcoes-container').hide();
+                // Reset checkboxes e campos
+                $('#correcoes-container input[type="checkbox"]').prop('checked', false);
+                $('#correcoes-container input, #correcoes-container textarea').prop('disabled', true).val('');
+            }
+        });
+        
+        $('#corrigir-valor').on('change', function() {
+            $('input[name="novo_valor"]').prop('disabled', !$(this).is(':checked'));
+            if (!$(this).is(':checked')) {
+                $('input[name="novo_valor"]').val('');
+            }
+        });
+        
+        $('#corrigir-descricao').on('change', function() {
+            $('input[name="nova_descricao_curta"]').prop('disabled', !$(this).is(':checked'));
+            if (!$(this).is(':checked')) {
+                $('input[name="nova_descricao_curta"]').val('');
+            }
+        });
+        
+        $('#corrigir-detalhes').on('change', function() {
+            $('textarea[name="nova_descricao_detalhada"]').prop('disabled', !$(this).is(':checked'));
+            if (!$(this).is(':checked')) {
+                $('textarea[name="nova_descricao_detalhada"]').val('');
+            }
+        });
         
         $('#form-resposta-contestacao').on('submit', function(e) {
             e.preventDefault();
@@ -336,14 +407,50 @@ jQuery(document).ready(function($) {
     }
     
     function gc_abrir_modal_contestacao_admin(lancamentoId) {
+        // Buscar informações do lançamento para determinar o tipo
+        $.ajax({
+            url: gc_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'gc_obter_tipo_lancamento',
+                id: lancamentoId,
+                nonce: gc_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    gc_criar_modal_contestacao_admin_tipado(lancamentoId, response.data.tipo);
+                } else {
+                    alert('Erro ao obter informações do lançamento: ' + response.data);
+                }
+            },
+            error: function() {
+                alert('Erro de conexão. Tente novamente.');
+            }
+        });
+    }
+    
+    function gc_criar_modal_contestacao_admin_tipado(lancamentoId, tipoLancamento) {
         var html = '<div class="gc-modal-contestacao">';
         html += '<h3>Abrir Contestação</h3>';
         html += '<form id="form-contestacao-admin">';
-        html += '<p><label>Tipo de Contestação:</label>';
+        html += '<p><label>Motivo da Contestação:</label>';
         html += '<select name="tipo" required>';
-        html += '<option value="">Selecione...</option>';
-        html += '<option value="doacao_nao_contabilizada">Doação não foi contabilizada</option>';
-        html += '<option value="despesa_nao_verificada">Despesa não pôde ser verificada</option>';
+        html += '<option value="">Selecione o motivo...</option>';
+        
+        if (tipoLancamento === 'receita') {
+            html += '<option value="doacao_nao_contabilizada">Doação não foi contabilizada</option>';
+            html += '<option value="valor_incorreto_receita">Valor registrado está incorreto</option>';
+            html += '<option value="data_incorreta_receita">Data registrada está incorreta</option>';
+            html += '<option value="doacao_inexistente">Doação registrada não existe</option>';
+            html += '<option value="doador_incorreto">Informações do doador incorretas</option>';
+        } else if (tipoLancamento === 'despesa') {
+            html += '<option value="despesa_nao_verificada">Despesa não pôde ser verificada</option>';
+            html += '<option value="valor_incorreto_despesa">Valor registrado está incorreto</option>';
+            html += '<option value="finalidade_questionavel">Finalidade da despesa é questionável</option>';
+            html += '<option value="documentacao_insuficiente">Documentação insuficiente</option>';
+            html += '<option value="despesa_desnecessaria">Despesa desnecessária ou inadequada</option>';
+        }
+        
         html += '</select></p>';
         html += '<p><label>Descrição:</label>';
         html += '<textarea name="descricao" rows="5" style="width: 100%;" required placeholder="Descreva detalhadamente a contestação..."></textarea></p>';
@@ -973,6 +1080,12 @@ jQuery(document).ready(function($) {
         window.location.href = url;
     });
     
+    // Ver contestações de um lançamento
+    $(document).on('click', '.gc-ver-contestacoes-lancamento', function() {
+        var lancamentoId = $(this).data('id');
+        gc_abrir_modal_lista_contestacoes(lancamentoId);
+    });
+    
     $('#btn-limpar-tudo').on('click', function() {
         var button = $(this);
         
@@ -1228,7 +1341,7 @@ jQuery(document).ready(function($) {
         html += '<p><strong>Tipo:</strong> ' + (lancamento.tipo === 'receita' ? 'Receita' : 'Despesa') + '</p>';
         html += '<p><strong>Descrição:</strong> ' + lancamento.descricao_curta + '</p>';
         html += '<p><strong>Valor:</strong> R$ ' + parseFloat(lancamento.valor).toFixed(2).replace('.', ',') + '</p>';
-        html += '<p><strong>Estado Atual:</strong> <span class="gc-badge">' + lancamento.estado.replace('_', ' ').toUpperCase() + '</span></p>';
+        html += '<p><strong>Estado Atual:</strong> <span class="gc-badge">' + gc_estado_para_texto_js(lancamento.estado) + '</span></p>';
         html += '<p><strong>Autor do Lançamento:</strong> ' + lancamento.autor_nome + '</p>';
         html += '</div>';
         
@@ -1237,7 +1350,7 @@ jQuery(document).ready(function($) {
         html += '<h4>⚖️ Detalhes da Contestação</h4>';
         html += '<p><strong>Tipo:</strong> ' + (contestacao.tipo === 'doacao_nao_contabilizada' ? 'Doação não contabilizada' : 'Despesa não verificada') + '</p>';
         
-        var estado_display = contestacao.estado ? contestacao.estado.replace('_', ' ').toUpperCase() : 'NÃO DEFINIDO';
+        var estado_display = contestacao.estado ? gc_estado_para_texto_js(contestacao.estado) : 'NÃO DEFINIDO';
         var estado_cor = contestacao.estado ? 'gc-contestacao-' + contestacao.estado : 'gc-contestacao-indefinido';
         
         html += '<p><strong>Estado:</strong> <span class="gc-badge ' + estado_cor + '">' + estado_display + '</span></p>';
@@ -1437,6 +1550,187 @@ jQuery(document).ready(function($) {
             console.log('Clicou em Registrar Resultado no modal');
             gc_fechar_modal();
             gc_abrir_modal_registrar_resultado($(this).data('id'));
+        });
+    }
+    
+    function gc_abrir_modal_lista_contestacoes(lancamentoId) {
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'gc_listar_contestacoes_lancamento',
+                lancamento_id: lancamentoId,
+                nonce: gc_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    var dados = response.data;
+                    var html = '<div class="gc-modal-lista-contestacoes">';
+                    html += '<h3>Contestações do Lançamento #' + dados.lancamento.numero_unico + '</h3>';
+                    
+                    if (dados.contestacoes.length > 0) {
+                        html += '<table class="wp-list-table widefat fixed striped">';
+                        html += '<thead><tr>';
+                        html += '<th>Tipo</th>';
+                        html += '<th>Estado</th>';
+                        html += '<th>Autor</th>';
+                        html += '<th>Data</th>';
+                        html += '<th>Ações</th>';
+                        html += '</tr></thead>';
+                        html += '<tbody>';
+                        
+                        dados.contestacoes.forEach(function(contestacao) {
+                            html += '<tr>';
+                            html += '<td>' + contestacao.tipo + '</td>';
+                            html += '<td><span class="gc-badge gc-contestacao-' + contestacao.estado + '">' + contestacao.estado.replace('_', ' ') + '</span></td>';
+                            html += '<td>' + contestacao.autor_nome + '</td>';
+                            html += '<td>' + new Date(contestacao.data_criacao).toLocaleDateString('pt-BR') + '</td>';
+                            html += '<td><button type="button" class="button button-small gc-ver-contestacao" data-id="' + contestacao.id + '">Ver</button></td>';
+                            html += '</tr>';
+                        });
+                        
+                        html += '</tbody></table>';
+                    } else {
+                        html += '<p>Nenhuma contestação encontrada para este lançamento.</p>';
+                    }
+                    
+                    html += '<p><button type="button" class="button gc-fechar-modal">Fechar</button></p>';
+                    html += '</div>';
+                    
+                    gc_abrir_modal(html);
+                } else {
+                    alert('Erro: ' + response.data);
+                }
+            },
+            error: function() {
+                alert('Erro ao carregar contestações');
+            }
+        });
+    }
+    
+    function gc_abrir_modal_lancamento_simples(tipo) {
+        var html = '<div class="gc-modal-lancamento-simples">';
+        html += '<h3>' + (tipo === 'receita' ? 'Nova Doação' : 'Nova Despesa') + '</h3>';
+        html += '<form id="form-lancamento-simples">';
+        
+        html += '<table class="form-table">';
+        html += '<tr>';
+        html += '<th><label>Descrição *</label></th>';
+        html += '<td><input type="text" name="descricao_curta" required class="regular-text"></td>';
+        html += '</tr>';
+        
+        html += '<tr>';
+        html += '<th><label>Valor (R$) *</label></th>';
+        html += '<td><input type="number" name="valor" required step="0.01" min="0.01" class="regular-text" id="valor-modal"></td>';
+        html += '</tr>';
+        
+        if (tipo === 'receita') {
+            html += '<tr id="tr-doacao-anonima-modal">';
+            html += '<th><label>Doação Anônima</label></th>';
+            html += '<td>';
+            html += '<label><input type="checkbox" name="doacao_anonima" id="doacao_anonima_modal"> Não mostrar meu nome publicamente</label>';
+            html += '<div id="aviso-limite-modal" class="notice" style="display: none; margin-top: 10px; padding: 10px;">';
+            html += '<p id="texto-aviso-modal"></p>';
+            html += '</div>';
+            html += '</td>';
+            html += '</tr>';
+        }
+        
+        html += '<tr>';
+        html += '<th><label>Detalhes</label></th>';
+        html += '<td><textarea name="descricao_detalhada" rows="3" class="large-text"></textarea></td>';
+        html += '</tr>';
+        html += '</table>';
+        
+        html += '<input type="hidden" name="tipo" value="' + tipo + '">';
+        html += '<p>';
+        html += '<button type="submit" class="button button-primary">Criar ' + (tipo === 'receita' ? 'Doação' : 'Despesa') + '</button> ';
+        html += '<button type="button" class="button gc-fechar-modal">Cancelar</button>';
+        html += '</p>';
+        html += '</form>';
+        html += '</div>';
+        
+        gc_abrir_modal(html);
+        
+        // Handler para verificar limite anônimo no modal
+        if (tipo === 'receita') {
+            $('#valor-modal').on('input change', function() {
+                verificarLimiteAnonimoModal();
+            });
+            
+            function verificarLimiteAnonimoModal() {
+                var valor = parseFloat($('#valor-modal').val()) || 0;
+                
+                if (valor <= 0) {
+                    $('#aviso-limite-modal').hide();
+                    return;
+                }
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'gc_verificar_limite_anonimo',
+                        valor: valor,
+                        nonce: gc_ajax.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            var dados = response.data;
+                            var $checkbox = $('#doacao_anonima_modal');
+                            var $aviso = $('#aviso-limite-modal');
+                            var $textoAviso = $('#texto-aviso-modal');
+                            
+                            if (!dados.pode_anonimo) {
+                                $checkbox.prop('disabled', true).prop('checked', false);
+                                $aviso.show().removeClass('notice-info').addClass('notice-warning');
+                                
+                                if (dados.excede_limite_valor) {
+                                    $textoAviso.html('<strong>⚠️ Doação será identificada publicamente</strong><br>' +
+                                        'Doações acima de R$ ' + parseFloat(dados.valor_maximo).toFixed(2).replace('.', ',') + ' têm identificação obrigatória.');
+                                } else if (dados.excede_limite_mensal) {
+                                    $textoAviso.html('<strong>⚠️ Limite mensal excedido</strong><br>' +
+                                        'Você já doou R$ ' + parseFloat(dados.total_mes).toFixed(2).replace('.', ',') + ' anonimamente este mês.');
+                                }
+                            } else {
+                                $checkbox.prop('disabled', false);
+                                $aviso.show().removeClass('notice-warning').addClass('notice-info');
+                                $textoAviso.html('<strong>ℹ️ Doação pode ser anônima</strong><br>' +
+                                    'Limite restante: R$ ' + parseFloat(dados.limite_restante).toFixed(2).replace('.', ','));
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Handler para submissão do formulário
+        $('#form-lancamento-simples').on('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(this);
+            formData.append('action', 'gc_criar_lancamento');
+            formData.append('nonce', gc_ajax.nonce);
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        alert('Lançamento criado com sucesso!');
+                        gc_fechar_modal();
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.data);
+                    }
+                },
+                error: function() {
+                    alert('Erro ao processar solicitação');
+                }
+            });
         });
     }
 });

@@ -8,6 +8,11 @@ $numero = isset($_GET['numero']) ? sanitize_text_field($_GET['numero']) : '';
 
 if ($action === 'ver' && !empty($numero)) {
     $lancamento = GC_Lancamento::obter_por_numero($numero);
+    if ($lancamento) {
+        $contador_contestacoes = GC_Lancamento::contar_contestacoes($lancamento->id);
+        $deve_mostrar_autoria = gc_deve_mostrar_autoria_publica($lancamento);
+        $autor = $deve_mostrar_autoria ? get_user_by('ID', $lancamento->autor_id) : null;
+    }
 }
 ?>
 
@@ -19,7 +24,7 @@ if ($action === 'ver' && !empty($numero)) {
                 <div class="gc-lancamento-header">
                     <h2><?php _e('Lançamento', 'gestao-coletiva'); ?> #<?php echo esc_html($lancamento->numero_unico); ?></h2>
                     <span class="gc-badge gc-badge-large gc-estado-<?php echo $lancamento->estado; ?>">
-                        <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                        <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                     </span>
                 </div>
                 
@@ -44,6 +49,19 @@ if ($action === 'ver' && !empty($numero)) {
                             <span><?php echo date('d/m/Y H:i', strtotime($lancamento->data_criacao)); ?></span>
                         </div>
                         
+                        <div class="gc-info-item">
+                            <label><?php _e('Autor:', 'gestao-coletiva'); ?></label>
+                            <span>
+                                <?php if ($deve_mostrar_autoria && $autor): ?>
+                                    <?php echo esc_html($autor->display_name); ?>
+                                <?php elseif ($deve_mostrar_autoria): ?>
+                                    <em><?php _e('Usuário removido', 'gestao-coletiva'); ?></em>
+                                <?php else: ?>
+                                    <em><?php _e('Anônimo', 'gestao-coletiva'); ?></em>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                        
                         <?php if ($lancamento->data_efetivacao): ?>
                         <div class="gc-info-item">
                             <label><?php _e('Data de Efetivação:', 'gestao-coletiva'); ?></label>
@@ -53,8 +71,24 @@ if ($action === 'ver' && !empty($numero)) {
                         
                         <div class="gc-info-item">
                             <label><?php _e('Recorrência:', 'gestao-coletiva'); ?></label>
-                            <span><?php echo esc_html(ucfirst($lancamento->recorrencia)); ?></span>
+                            <span>
+                                <?php echo esc_html(ucfirst($lancamento->recorrencia)); ?>
+                                <?php if ($lancamento->recorrencia !== 'unica'): ?>
+                                    <?php if ($lancamento->recorrencia_ativa): ?>
+                                        <span class="gc-badge gc-badge-success"><?php _e('Ativa', 'gestao-coletiva'); ?></span>
+                                    <?php else: ?>
+                                        <span class="gc-badge gc-badge-error"><?php _e('Cancelada', 'gestao-coletiva'); ?></span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </span>
                         </div>
+                        
+                        <?php if ($lancamento->data_proxima_recorrencia && $lancamento->recorrencia_ativa): ?>
+                        <div class="gc-info-item">
+                            <label><?php _e('Próxima Recorrência:', 'gestao-coletiva'); ?></label>
+                            <span><?php echo date('d/m/Y H:i', strtotime($lancamento->data_proxima_recorrencia)); ?></span>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="gc-descricoes">
@@ -124,12 +158,27 @@ if ($action === 'ver' && !empty($numero)) {
                     <?php 
                     // Estados que permitem gerar certificado
                     $estados_certificado = array('efetivado', 'confirmado', 'aceito', 'retificado_comunidade');
-                    if (in_array($lancamento->estado, $estados_certificado) && $lancamento->tipo === 'receita'): 
+                    $user_id = get_current_user_id();
+                    $eh_autor = ($lancamento->autor_id == $user_id);
+                    $eh_admin = current_user_can('manage_options');
+                    $pode_gerar = in_array($lancamento->estado, $estados_certificado) && 
+                                $lancamento->tipo === 'receita' && 
+                                ($eh_autor || $eh_admin);
+                    if ($pode_gerar): 
                     ?>
                         <button type="button" class="gc-btn gc-btn-primary gc-gerar-certificado" data-id="<?php echo $lancamento->id; ?>">
                             <span class="gc-icon">🏆</span>
                             <?php _e('Gerar Certificado', 'gestao-coletiva'); ?>
                         </button>
+                    <?php endif; ?>
+                    
+                    <!-- Ações de Recorrência -->
+                    <?php if ($lancamento->recorrencia !== 'unica' && ($eh_autor || $eh_admin)): ?>
+                        <?php if ($lancamento->recorrencia_ativa): ?>
+                            <button type="button" class="gc-btn gc-btn-secondary gc-cancelar-recorrencia" data-id="<?php echo $lancamento->id; ?>">
+                                <?php _e('Cancelar Recorrência', 'gestao-coletiva'); ?>
+                            </button>
+                        <?php endif; ?>
                     <?php endif; ?>
                     
                     <?php 
@@ -140,6 +189,13 @@ if ($action === 'ver' && !empty($numero)) {
                         <button type="button" class="gc-btn gc-btn-outline gc-abrir-contestacao" data-id="<?php echo $lancamento->id; ?>">
                             <span class="gc-icon">⚠️</span>
                             <?php _e('Contestar', 'gestao-coletiva'); ?>
+                        </button>
+                    <?php endif; ?>
+                    
+                    <?php if ($contador_contestacoes > 0): ?>
+                        <button type="button" class="gc-btn gc-btn-outline gc-ver-contestacoes-publico" data-id="<?php echo $lancamento->id; ?>">
+                            <span class="gc-icon">📋</span>
+                            <?php _e('Ver Contestações', 'gestao-coletiva'); ?> (<?php echo $contador_contestacoes; ?>)
                         </button>
                     <?php endif; ?>
                     
@@ -228,7 +284,7 @@ if ($action === 'ver' && !empty($numero)) {
                             <strong>#<?php echo esc_html($lanc->numero_unico); ?></strong>
                             <span class="gc-item-descricao"><?php echo esc_html($lanc->descricao_curta); ?></span>
                             <span class="gc-badge gc-estado-<?php echo $lanc->estado; ?>">
-                                <?php echo esc_html(ucfirst(str_replace('_', ' ', $lanc->estado))); ?>
+                                <?php echo esc_html(gc_estado_para_texto($lanc->estado)); ?>
                             </span>
                         </div>
                         <div class="gc-item-valor">
@@ -240,6 +296,14 @@ if ($action === 'ver' && !empty($numero)) {
                             <button type="button" class="gc-btn gc-btn-small gc-ver-lancamento" data-numero="<?php echo esc_attr($lanc->numero_unico); ?>">
                                 <?php _e('Ver', 'gestao-coletiva'); ?>
                             </button>
+                            <?php 
+                            $contador_lanc = GC_Lancamento::contar_contestacoes($lanc->id);
+                            if ($contador_lanc > 0): 
+                            ?>
+                                <button type="button" class="gc-btn gc-btn-small gc-ver-contestacoes-publico" data-id="<?php echo $lanc->id; ?>" style="margin-left: 5px;">
+                                    <?php _e('Contestações', 'gestao-coletiva'); ?> (<?php echo $contador_lanc; ?>)
+                                </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -304,9 +368,118 @@ jQuery(document).ready(function($) {
         setInterval(atualizarContador, 60000); // Atualizar a cada minuto
     }
     
+    // Ver contestações de um lançamento (público)
+    $(document).on('click', '.gc-ver-contestacoes-publico', function() {
+        var lancamentoId = $(this).data('id');
+        gc_abrir_modal_lista_contestacoes_publico(lancamentoId);
+    });
+    
     function gc_criar_lancamento(tipo) {
         // Abrir modal para criar lançamento em vez de redirecionar
         gc_abrir_modal_lancamento_simples(tipo);
+    }
+    
+    // Sistema de modal simples para views públicas
+    function gc_abrir_modal_publico(content) {
+        var $modal = $('<div class="gc-modal-overlay-publico">').css({
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        });
+        
+        var $modalContent = $('<div class="gc-modal-content-publico">').css({
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            maxWidth: '90%',
+            maxHeight: '90%',
+            overflow: 'auto',
+            position: 'relative'
+        }).html(content);
+        
+        $modal.append($modalContent);
+        $('body').append($modal);
+        
+        // Fechar ao clicar fora do modal
+        $modal.on('click', function(e) {
+            if (e.target === this) {
+                gc_fechar_modal_publico();
+            }
+        });
+        
+        // Fechar com ESC
+        $(document).on('keydown.gc-modal', function(e) {
+            if (e.keyCode === 27) {
+                gc_fechar_modal_publico();
+            }
+        });
+    }
+    
+    function gc_fechar_modal_publico() {
+        $('.gc-modal-overlay-publico').remove();
+        $(document).off('keydown.gc-modal');
+    }
+    
+    function gc_abrir_modal_lista_contestacoes_publico(lancamentoId) {
+        $.ajax({
+            url: gc_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'gc_listar_contestacoes_lancamento',
+                lancamento_id: lancamentoId,
+                nonce: gc_ajax.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    var dados = response.data;
+                    var html = '<div class="gc-modal-lista-contestacoes-publico">';
+                    html += '<h3>Contestações do Lançamento #' + dados.lancamento.numero_unico + '</h3>';
+                    
+                    if (dados.contestacoes.length > 0) {
+                        html += '<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">';
+                        html += '<thead><tr style="background: #f1f1f1;">';
+                        html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tipo</th>';
+                        html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Estado</th>';
+                        html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Data</th>';
+                        html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Descrição</th>';
+                        html += '</tr></thead>';
+                        html += '<tbody>';
+                        
+                        dados.contestacoes.forEach(function(contestacao) {
+                            html += '<tr>';
+                            html += '<td style="padding: 10px; border: 1px solid #ddd;">' + contestacao.tipo + '</td>';
+                            html += '<td style="padding: 10px; border: 1px solid #ddd;"><span class="gc-badge gc-contestacao-' + contestacao.estado + '">' + contestacao.estado.replace(/_/g, ' ') + '</span></td>';
+                            html += '<td style="padding: 10px; border: 1px solid #ddd;">' + new Date(contestacao.data_criacao).toLocaleDateString('pt-BR') + '</td>';
+                            html += '<td style="padding: 10px; border: 1px solid #ddd;">' + (contestacao.descricao.length > 100 ? contestacao.descricao.substring(0, 100) + '...' : contestacao.descricao) + '</td>';
+                            html += '</tr>';
+                        });
+                        
+                        html += '</tbody></table>';
+                    } else {
+                        html += '<p>Nenhuma contestação encontrada para este lançamento.</p>';
+                    }
+                    
+                    html += '<div style="text-align: center; margin-top: 20px;">';
+                    html += '<button type="button" onclick="gc_fechar_modal_publico()" style="padding: 10px 20px; background: #0073aa; color: white; border: none; border-radius: 4px; cursor: pointer;">Fechar</button>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    gc_abrir_modal_publico(html);
+                } else {
+                    alert('Erro: ' + response.data);
+                }
+            },
+            error: function() {
+                alert('Erro ao carregar contestações');
+            }
+        });
     }
 });
 </script>

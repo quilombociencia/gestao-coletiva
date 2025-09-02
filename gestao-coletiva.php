@@ -259,6 +259,11 @@ class GestaoColetiva {
     }
     
     public function painel_shortcode($atts) {
+        // Garantir que as classes necessárias estejam carregadas
+        if (!class_exists('GC_Relatorio')) {
+            $this->load_dependencies();
+        }
+        
         $file = GC_PLUGIN_PATH . 'public/views/painel.php';
         if (file_exists($file)) {
             ob_start();
@@ -269,6 +274,11 @@ class GestaoColetiva {
     }
     
     public function lancamentos_shortcode($atts) {
+        // Garantir que as classes necessárias estejam carregadas
+        if (!class_exists('GC_Lancamento')) {
+            $this->load_dependencies();
+        }
+        
         $file = GC_PLUGIN_PATH . 'public/views/lancamentos.php';
         if (file_exists($file)) {
             ob_start();
@@ -279,6 +289,11 @@ class GestaoColetiva {
     }
     
     public function livro_caixa_shortcode($atts) {
+        // Garantir que as classes necessárias estejam carregadas
+        if (!class_exists('GC_Relatorio')) {
+            $this->load_dependencies();
+        }
+        
         $file = GC_PLUGIN_PATH . 'public/views/livro-caixa.php';
         if (file_exists($file)) {
             ob_start();
@@ -289,6 +304,11 @@ class GestaoColetiva {
     }
     
     public function verificar_certificado_shortcode($atts) {
+        // Garantir que as classes necessárias estejam carregadas
+        if (!class_exists('GC_Lancamento')) {
+            $this->load_dependencies();
+        }
+        
         $file = GC_PLUGIN_PATH . 'public/views/verificar-certificado.php';
         if (file_exists($file)) {
             ob_start();
@@ -297,43 +317,148 @@ class GestaoColetiva {
         }
         return '<p>' . __('Erro: arquivo de template não encontrado.', 'gestao-coletiva') . '</p>';
     }
-    
-    // Error notices
-    public function wp_version_notice() {
-        echo '<div class="notice notice-error"><p>';
-        echo __('Gestão Coletiva requer WordPress 5.0 ou superior.', 'gestao-coletiva');
-        echo '</p></div>';
-    }
-    
-    public function php_version_notice() {
-        echo '<div class="notice notice-error"><p>';
-        echo __('Gestão Coletiva requer PHP 7.4 ou superior.', 'gestao-coletiva');
-        echo '</p></div>';
-    }
-    
-    public function activation_error_notice() {
-        $error = get_option('gc_activation_error');
-        if ($error) {
-            echo '<div class="notice notice-error"><p>';
-            echo sprintf(__('Erro na ativação do Gestão Coletiva: %s', 'gestao-coletiva'), esc_html($error));
-            echo '</p></div>';
-            delete_option('gc_activation_error');
-        }
-    }
-    
-    public static function uninstall() {
-        // Carregar apenas a classe Database para desinstalação
-        $database_file = plugin_dir_path(__FILE__) . 'includes/class-gc-database.php';
-        if (file_exists($database_file)) {
-            require_once $database_file;
-            
-            if (class_exists('GC_Database')) {
-                GC_Database::remover_tabelas_plugin();
-                error_log('Gestão Coletiva: Plugin desinstalado - todas as tabelas e dados removidos');
-            }
-        }
-    }
 }
 
-// Initialize the plugin
-new GestaoColetiva();
+// Função helper para obter nome dos tipos de contestação
+function gc_obter_nome_tipo_contestacao($tipo) {
+    $tipos = array(
+        'doacao_nao_contabilizada' => __('Doação não contabilizada', 'gestao-coletiva'),
+        'valor_incorreto_receita' => __('Valor incorreto (receita)', 'gestao-coletiva'),
+        'data_incorreta_receita' => __('Data incorreta (receita)', 'gestao-coletiva'),
+        'doacao_inexistente' => __('Doação inexistente', 'gestao-coletiva'),
+        'doador_incorreto' => __('Doador incorreto', 'gestao-coletiva'),
+        'despesa_nao_verificada' => __('Despesa não verificada', 'gestao-coletiva'),
+        'valor_incorreto_despesa' => __('Valor incorreto (despesa)', 'gestao-coletiva'),
+        'finalidade_questionavel' => __('Finalidade questionável', 'gestao-coletiva'),
+        'documentacao_insuficiente' => __('Documentação insuficiente', 'gestao-coletiva'),
+        'despesa_desnecessaria' => __('Despesa desnecessária', 'gestao-coletiva')
+    );
+    
+    return isset($tipos[$tipo]) ? $tipos[$tipo] : $tipo;
+}
+
+// Instanciar plugin
+if (class_exists('GestaoColetiva')) {
+    new GestaoColetiva();
+} else {
+    add_action('admin_notices', 'gc_wp_version_notice');
+}
+
+function gc_wp_version_notice() {
+    echo '<div class="notice notice-error"><p>';
+    echo __('Gestão Coletiva requer WordPress 5.0 ou superior.', 'gestao-coletiva');
+    echo '</p></div>';
+}
+
+/**
+ * Converte estados internos em texto amigável para exibição
+ */
+function gc_estado_para_texto($estado) {
+    $mapeamento = array(
+        'previsto' => 'Previsto',
+        'efetivado' => 'Efetivado', 
+        'cancelado' => 'Cancelado',
+        'expirado' => 'Expirado',
+        'em_contestacao' => 'Em Contestação',
+        'contestado' => 'Contestado',
+        'confirmado' => 'Confirmado',
+        'aceito' => 'Aceito',
+        'em_disputa' => 'Em Disputa',
+        'retificado_comunidade' => 'Confirmado pela Comunidade',
+        'contestado_comunidade' => 'Contestado pela Comunidade'
+    );
+    
+    return isset($mapeamento[$estado]) ? $mapeamento[$estado] : ucfirst(str_replace('_', ' ', $estado));
+}
+
+function gc_deve_mostrar_autoria_publica($lancamento) {
+    // Despesas sempre mostram autoria
+    if ($lancamento->tipo === 'despesa') {
+        return true;
+    }
+    
+    // Para receitas, verificar se foi marcada como anônima
+    if (isset($lancamento->doacao_anonima) && $lancamento->doacao_anonima) {
+        return false;
+    }
+    
+    // Se não foi marcada como anônima, sempre mostrar autoria
+    return true;
+}
+
+function gc_pode_doacao_anonima($valor_proposto, $autor_id = null) {
+    if (!$autor_id) {
+        $autor_id = get_current_user_id();
+    }
+    
+    $valor_maximo_anonimo = GC_Database::get_setting('valor_maximo_doacao_anonima');
+    
+    // Se não há limite configurado, todas as doações podem ser anônimas
+    if (empty($valor_maximo_anonimo)) {
+        return true;
+    }
+    
+    $limite = floatval($valor_maximo_anonimo);
+    
+    // Se o valor proposto já é maior que o limite, não pode ser anônimo
+    if ($valor_proposto > $limite) {
+        return false;
+    }
+    
+    // Verificar total de doações anônimas no mês atual
+    global $wpdb;
+    $inicio_mes = date('Y-m-01 00:00:00');
+    $fim_mes = date('Y-m-t 23:59:59');
+    
+    $table_name = $wpdb->prefix . 'gc_lancamentos';
+    
+    $total_anonimo_mes = $wpdb->get_var($wpdb->prepare(
+        "SELECT COALESCE(SUM(valor), 0) 
+         FROM $table_name 
+         WHERE autor_id = %d 
+         AND tipo = 'receita' 
+         AND valor <= %f
+         AND data_criacao BETWEEN %s AND %s
+         AND estado != 'cancelado'",
+        $autor_id,
+        $limite,
+        $inicio_mes,
+        $fim_mes
+    ));
+    
+    // Se somar o valor proposto não exceder o limite mensal, pode ser anônimo
+    return ($total_anonimo_mes + $valor_proposto) <= $limite;
+}
+
+function gc_obter_total_doacoes_anonimas_mes($autor_id = null) {
+    if (!$autor_id) {
+        $autor_id = get_current_user_id();
+    }
+    
+    $valor_maximo_anonimo = GC_Database::get_setting('valor_maximo_doacao_anonima');
+    
+    if (empty($valor_maximo_anonimo)) {
+        return 0;
+    }
+    
+    global $wpdb;
+    $inicio_mes = date('Y-m-01 00:00:00');
+    $fim_mes = date('Y-m-t 23:59:59');
+    $limite = floatval($valor_maximo_anonimo);
+    
+    $table_name = $wpdb->prefix . 'gc_lancamentos';
+    
+    return $wpdb->get_var($wpdb->prepare(
+        "SELECT COALESCE(SUM(valor), 0) 
+         FROM $table_name 
+         WHERE autor_id = %d 
+         AND tipo = 'receita' 
+         AND valor <= %f
+         AND data_criacao BETWEEN %s AND %s
+         AND estado != 'cancelado'",
+        $autor_id,
+        $limite,
+        $inicio_mes,
+        $fim_mes
+    ));
+}

@@ -24,18 +24,30 @@ class GC_Lancamento {
             $data_proxima_recorrencia = self::calcular_proxima_recorrencia(current_time('mysql'), $recorrencia);
         }
         
+        // Verificar se deve ser forçadamente público (receita acima do limite ou que excede limite mensal)
+        $autor_id = get_current_user_id();
+        $valor = floatval($dados['valor']);
+        $tipo = sanitize_text_field($dados['tipo']);
+        $doacao_anonima = false;
+        
+        // Para receitas, verificar se pode ser anônima
+        if ($tipo === 'receita') {
+            $doacao_anonima = isset($dados['doacao_anonima']) && $dados['doacao_anonima'] && gc_pode_doacao_anonima($valor, $autor_id);
+        }
+        
         $lancamento = array(
             'numero_unico' => $numero_unico,
-            'tipo' => sanitize_text_field($dados['tipo']),
+            'tipo' => $tipo,
             'descricao_curta' => sanitize_text_field($dados['descricao_curta']),
             'descricao_detalhada' => sanitize_textarea_field($dados['descricao_detalhada']),
-            'valor' => floatval($dados['valor']),
+            'valor' => $valor,
             'recorrencia' => $recorrencia,
             'lancamento_pai_id' => isset($dados['lancamento_pai_id']) ? intval($dados['lancamento_pai_id']) : null,
             'data_proxima_recorrencia' => $data_proxima_recorrencia,
             'recorrencia_ativa' => ($recorrencia !== 'unica') ? 1 : 0,
             'estado' => 'previsto',
-            'autor_id' => get_current_user_id(),
+            'autor_id' => $autor_id,
+            'doacao_anonima' => $doacao_anonima ? 1 : 0,
             'data_criacao' => current_time('mysql'),
             'data_expiracao' => $data_expiracao,
             'prazo_atual' => $data_expiracao,
@@ -122,6 +134,11 @@ class GC_Lancamento {
             $params[] = $filtros['autor_id'];
         }
         
+        if (isset($filtros['recorrencia_ativa'])) {
+            $where[] = 'recorrencia_ativa = %d';
+            $params[] = $filtros['recorrencia_ativa'];
+        }
+        
         if (isset($filtros['estados_realizados']) && $filtros['estados_realizados']) {
             $where[] = "estado IN ('efetivado', 'confirmado', 'aceito', 'retificado_comunidade')";
         }
@@ -205,6 +222,29 @@ class GC_Lancamento {
             return false;
         }
         
+        // Estados irreversíveis - não podem ser editados por ninguém
+        $estados_irreversiveis = array(
+            'efetivado',                 // Lançamento efetivado
+            'contestado',                // Lançamento contestado
+            'aceito',                    // Contestação aceita pelo contestante
+            'retificado_comunidade',     // Confirmado pela comunidade
+            'contestado_comunidade'      // Contestado pela comunidade
+        );
+        
+        if (in_array($lancamento->estado, $estados_irreversiveis)) {
+            return false;
+        }
+        
+        // Estados que apenas admins podem editar
+        $estados_admin_apenas = array(
+            'confirmado', 'em_contestacao', 'em_disputa'
+        );
+        
+        if (in_array($lancamento->estado, $estados_admin_apenas)) {
+            return current_user_can('manage_options');
+        }
+        
+        // Estados editáveis por admins e autor
         if (current_user_can('manage_options')) {
             return true;
         }
@@ -213,6 +253,7 @@ class GC_Lancamento {
             return false;
         }
         
+        // Usuários comuns só podem editar lançamentos previstos
         return in_array($lancamento->estado, array('previsto'));
     }
     
@@ -287,6 +328,16 @@ class GC_Lancamento {
         // Se não há dados para atualizar, retornar erro
         if (empty($update_data)) {
             return new WP_Error('no_data', 'Nenhum dado fornecido para atualização');
+        }
+        
+        // Registrar alterações no histórico antes de atualizar
+        foreach ($update_data as $campo => $valor_novo) {
+            if (in_array($campo, ['valor', 'descricao_curta', 'descricao_detalhada'])) {
+                $valor_anterior = $lancamento->$campo;
+                if ($valor_anterior != $valor_novo) {
+                    self::registrar_alteracao($id, $campo, $valor_anterior, $valor_novo);
+                }
+            }
         }
         
         // Atualizar no banco de dados
@@ -418,7 +469,17 @@ class GC_Lancamento {
                     
                 case 'confirmado':
                     if ($lancamento->tipo_prazo === 'analise_resposta') {
+                        // Contestação improcedente vencida = aceito
+                        // (Lançamento já está em 'confirmado' que indica improcedente)
                         self::atualizar_estado($lancamento->id, 'aceito');
+                    }
+                    break;
+                    
+                case 'contestado':
+                    if ($lancamento->tipo_prazo === 'analise_resposta') {
+                        // Contestação procedente vencida = mantém contestado
+                        // (Lançamento já está em 'contestado' que indica procedente)
+                        // Nenhuma ação necessária, apenas comentário para clareza
                     }
                     break;
                     
@@ -694,5 +755,74 @@ class GC_Lancamento {
         ));
         
         return $serie;
+    }
+    
+    /**
+     * Registra alteração no histórico de edições
+     */
+    public static function registrar_alteracao($lancamento_id, $campo, $valor_anterior, $valor_novo, $motivo = 'edicao_direta', $contestacao_id = null) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_historico_edicoes';
+        
+        return $wpdb->insert(
+            $table_name,
+            array(
+                'lancamento_id' => intval($lancamento_id),
+                'campo_alterado' => sanitize_text_field($campo),
+                'valor_anterior' => $valor_anterior,
+                'valor_novo' => $valor_novo,
+                'motivo' => sanitize_text_field($motivo),
+                'contestacao_id' => $contestacao_id ? intval($contestacao_id) : null,
+                'usuario_id' => get_current_user_id(),
+                'data_alteracao' => current_time('mysql')
+            ),
+            array('%d', '%s', '%s', '%s', '%s', '%d', '%d', '%s')
+        );
+    }
+    
+    /**
+     * Obtém histórico de edições de um lançamento
+     */
+    public static function obter_historico($lancamento_id) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_historico_edicoes';
+        
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT h.*, u.display_name as usuario_nome, c.tipo as contestacao_tipo
+             FROM $table_name h
+             LEFT JOIN {$wpdb->users} u ON h.usuario_id = u.ID
+             LEFT JOIN {$wpdb->prefix}gc_contestacoes c ON h.contestacao_id = c.id
+             WHERE h.lancamento_id = %d
+             ORDER BY h.data_alteracao DESC",
+            $lancamento_id
+        ));
+    }
+    
+    public static function contar_contestacoes($lancamento_id) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'gc_contestacoes';
+        
+        return $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_name WHERE lancamento_id = %d",
+            $lancamento_id
+        ));
+    }
+    
+    public static function pode_contestar($lancamento_id) {
+        // Verificar se há limite configurado
+        $limite = GC_Database::get_setting('limite_contestacoes_por_lancamento');
+        
+        // Se não há limite configurado, sempre pode contestar
+        if (empty($limite)) {
+            return true;
+        }
+        
+        // Verificar quantidade atual de contestações
+        $quantidade_atual = self::contar_contestacoes($lancamento_id);
+        
+        return $quantidade_atual < $limite;
     }
 }

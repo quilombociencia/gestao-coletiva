@@ -215,6 +215,7 @@ if ($incluir_previsoes) {
                             <th><?php _e('Data', 'gestao-coletiva'); ?></th>
                             <th><?php _e('Número', 'gestao-coletiva'); ?></th>
                             <th><?php _e('Descrição', 'gestao-coletiva'); ?></th>
+                            <th><?php _e('Autor', 'gestao-coletiva'); ?></th>
                             <th><?php _e('Estado', 'gestao-coletiva'); ?></th>
                             <th><?php _e('Entrada', 'gestao-coletiva'); ?></th>
                             <th><?php _e('Saída', 'gestao-coletiva'); ?></th>
@@ -228,6 +229,9 @@ if ($incluir_previsoes) {
                         <?php 
                         $eh_previsto = isset($lancamento->lancamento_pai_id) || $lancamento->estado === 'previsto';
                         $class_extra = $eh_previsto ? ' gc-lancamento-previsto' : ' gc-lancamento-realizado';
+                        $contador_contestacoes = GC_Lancamento::contar_contestacoes($lancamento->id);
+                        $deve_mostrar_autoria = gc_deve_mostrar_autoria_publica($lancamento);
+                        $autor = $deve_mostrar_autoria ? get_user_by('ID', $lancamento->autor_id) : null;
                         ?>
                         <tr class="gc-lancamento-row gc-tipo-<?php echo $lancamento->tipo; ?> gc-estado-<?php echo $lancamento->estado; ?><?php echo $class_extra; ?>">
                             <td><?php echo date('d/m/Y', strtotime($lancamento->data_criacao)); ?></td>
@@ -241,14 +245,28 @@ if ($incluir_previsoes) {
                                 <?php echo esc_html($lancamento->descricao_curta); ?>
                                 <?php if ($lancamento->estado !== 'efetivado' && !$eh_previsto): ?>
                                     <small class="gc-prazo-info">
-                                        <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                                        <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                                     </small>
                                 <?php endif; ?>
                             </td>
                             <td>
+                                <?php if ($deve_mostrar_autoria && $autor): ?>
+                                    <?php echo esc_html($autor->display_name); ?>
+                                <?php elseif ($deve_mostrar_autoria): ?>
+                                    <em><?php _e('Usuário removido', 'gestao-coletiva'); ?></em>
+                                <?php else: ?>
+                                    <em><?php _e('Anônimo', 'gestao-coletiva'); ?></em>
+                                <?php endif; ?>
+                            </td>
+                            <td>
                                 <span class="gc-badge gc-estado-<?php echo $lancamento->estado; ?> <?php echo $eh_previsto ? 'gc-previsto' : ''; ?>">
-                                    <?php echo esc_html(ucfirst(str_replace('_', ' ', $lancamento->estado))); ?>
+                                    <?php echo esc_html(gc_estado_para_texto($lancamento->estado)); ?>
                                 </span>
+                                <?php if ($contador_contestacoes > 0): ?>
+                                    <br><small style="color: #d63638;">
+                                        <?php printf(_n('%d contestação', '%d contestações', $contador_contestacoes, 'gestao-coletiva'), $contador_contestacoes); ?>
+                                    </small>
+                                <?php endif; ?>
                             </td>
                             <td class="gc-valor-entrada">
                                 <?php if ($lancamento->tipo === 'receita'): ?>
@@ -273,6 +291,11 @@ if ($incluir_previsoes) {
                                 <button type="button" class="gc-btn gc-btn-small gc-ver-lancamento" data-numero="<?php echo esc_attr($lancamento->numero_unico); ?>">
                                     <?php _e('Ver', 'gestao-coletiva'); ?>
                                 </button>
+                                <?php if ($contador_contestacoes > 0): ?>
+                                    <button type="button" class="gc-btn gc-btn-small gc-ver-contestacoes-publico" data-id="<?php echo $lancamento->id; ?>" style="margin-left: 5px;">
+                                        <?php _e('Contestações', 'gestao-coletiva'); ?> (<?php echo $contador_contestacoes; ?>)
+                                    </button>
+                                <?php endif; ?>
                             </td>
                             <?php endif; ?>
                         </tr>
@@ -367,6 +390,144 @@ jQuery(document).ready(function($) {
             ctx.textAlign = 'center';
             ctx.fillText('<?php _e("Gráfico de evolução (implementação simplificada)", "gestao-coletiva"); ?>', canvas.width/2, canvas.height/2);
         }
+    }
+    
+    // Funcionalidade das abas de previsão
+    $('.gc-tab-btn').on('click', function() {
+        var $btn = $(this);
+        var tab = $btn.data('tab');
+        
+        // Atualizar visual das abas
+        $('.gc-tab-btn').removeClass('active');
+        $btn.addClass('active');
+        
+        // Filtrar lançamentos baseado na aba
+        var $rows = $('.gc-lancamento-row');
+        
+        switch(tab) {
+            case 'todos':
+                $rows.show();
+                break;
+            case 'realizados':
+                $rows.hide();
+                $('.gc-lancamento-realizado').show();
+                break;
+            case 'previstos':
+                $rows.hide();
+                $('.gc-lancamento-previsto').show();
+                break;
+        }
+    });
+    
+    // Ver contestações de um lançamento (público)
+    $(document).on('click', '.gc-ver-contestacoes-publico', function() {
+        var lancamentoId = $(this).data('id');
+        gc_abrir_modal_lista_contestacoes_publico(lancamentoId);
+    });
+    
+    // Sistema de modal simples para views públicas (definir apenas uma vez)
+    if (typeof gc_abrir_modal_publico === 'undefined') {
+        window.gc_abrir_modal_publico = function(content) {
+            var $modal = $('<div class="gc-modal-overlay-publico">').css({
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                zIndex: 999999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            });
+            
+            var $modalContent = $('<div class="gc-modal-content-publico">').css({
+                backgroundColor: 'white',
+                padding: '20px',
+                borderRadius: '8px',
+                maxWidth: '90%',
+                maxHeight: '90%',
+                overflow: 'auto',
+                position: 'relative'
+            }).html(content);
+            
+            $modal.append($modalContent);
+            $('body').append($modal);
+            
+            // Fechar ao clicar fora do modal
+            $modal.on('click', function(e) {
+                if (e.target === this) {
+                    gc_fechar_modal_publico();
+                }
+            });
+            
+            // Fechar com ESC
+            $(document).on('keydown.gc-modal', function(e) {
+                if (e.keyCode === 27) {
+                    gc_fechar_modal_publico();
+                }
+            });
+        };
+        
+        window.gc_fechar_modal_publico = function() {
+            $('.gc-modal-overlay-publico').remove();
+            $(document).off('keydown.gc-modal');
+        };
+        
+        window.gc_abrir_modal_lista_contestacoes_publico = function(lancamentoId) {
+            $.ajax({
+                url: gc_ajax.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'gc_listar_contestacoes_lancamento',
+                    lancamento_id: lancamentoId,
+                    nonce: gc_ajax.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        var dados = response.data;
+                        var html = '<div class="gc-modal-lista-contestacoes-publico">';
+                        html += '<h3>Contestações do Lançamento #' + dados.lancamento.numero_unico + '</h3>';
+                        
+                        if (dados.contestacoes.length > 0) {
+                            html += '<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">';
+                            html += '<thead><tr style="background: #f1f1f1;">';
+                            html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tipo</th>';
+                            html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Estado</th>';
+                            html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Data</th>';
+                            html += '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Descrição</th>';
+                            html += '</tr></thead>';
+                            html += '<tbody>';
+                            
+                            dados.contestacoes.forEach(function(contestacao) {
+                                html += '<tr>';
+                                html += '<td style="padding: 10px; border: 1px solid #ddd;">' + contestacao.tipo + '</td>';
+                                html += '<td style="padding: 10px; border: 1px solid #ddd;"><span class="gc-badge gc-contestacao-' + contestacao.estado + '">' + contestacao.estado.replace(/_/g, ' ') + '</span></td>';
+                                html += '<td style="padding: 10px; border: 1px solid #ddd;">' + new Date(contestacao.data_criacao).toLocaleDateString('pt-BR') + '</td>';
+                                html += '<td style="padding: 10px; border: 1px solid #ddd;">' + (contestacao.descricao.length > 100 ? contestacao.descricao.substring(0, 100) + '...' : contestacao.descricao) + '</td>';
+                                html += '</tr>';
+                            });
+                            
+                            html += '</tbody></table>';
+                        } else {
+                            html += '<p>Nenhuma contestação encontrada para este lançamento.</p>';
+                        }
+                        
+                        html += '<div style="text-align: center; margin-top: 20px;">';
+                        html += '<button type="button" onclick="gc_fechar_modal_publico()" style="padding: 10px 20px; background: #0073aa; color: white; border: none; border-radius: 4px; cursor: pointer;">Fechar</button>';
+                        html += '</div>';
+                        html += '</div>';
+                        
+                        gc_abrir_modal_publico(html);
+                    } else {
+                        alert('Erro: ' + response.data);
+                    }
+                },
+                error: function() {
+                    alert('Erro ao carregar contestações');
+                }
+            });
+        };
     }
 });
 </script>

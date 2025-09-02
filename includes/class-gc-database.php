@@ -27,6 +27,7 @@ class GC_Database {
             recorrencia_ativa boolean DEFAULT TRUE COMMENT 'Se a recorrência ainda está ativa',
             estado enum('previsto', 'efetivado', 'cancelado', 'expirado', 'em_contestacao', 'contestado', 'confirmado', 'aceito', 'em_disputa', 'retificado_comunidade', 'contestado_comunidade') DEFAULT 'previsto',
             autor_id int(11) NOT NULL,
+            doacao_anonima boolean DEFAULT FALSE COMMENT 'Se a doação deve aparecer como anônima na view pública',
             data_criacao datetime NOT NULL,
             data_efetivacao datetime NULL,
             data_expiracao datetime NOT NULL,
@@ -44,7 +45,7 @@ class GC_Database {
             id int(11) NOT NULL AUTO_INCREMENT,
             lancamento_id int(11) NOT NULL,
             autor_id int(11) NOT NULL,
-            tipo enum('doacao_nao_contabilizada', 'despesa_nao_verificada') NOT NULL,
+            tipo enum('doacao_nao_contabilizada', 'valor_incorreto_receita', 'data_incorreta_receita', 'doacao_inexistente', 'doador_incorreto', 'despesa_nao_verificada', 'valor_incorreto_despesa', 'finalidade_questionavel', 'documentacao_insuficiente', 'despesa_desnecessaria') NOT NULL,
             descricao text NOT NULL,
             comprovante text,
             estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'votacao_aberta', 'disputa_finalizada', 'expirada') DEFAULT 'pendente',
@@ -62,6 +63,24 @@ class GC_Database {
             KEY lancamento_id (lancamento_id),
             KEY autor_id (autor_id),
             KEY estado (estado)
+        ) $charset_collate;";
+        
+        // Tabela de histórico de edições
+        $tables[] = "CREATE TABLE {$wpdb->prefix}gc_historico_edicoes (
+            id int(11) NOT NULL AUTO_INCREMENT,
+            lancamento_id int(11) NOT NULL,
+            campo_alterado varchar(50) NOT NULL,
+            valor_anterior text NULL,
+            valor_novo text NULL,
+            motivo enum('contestacao_admin', 'contestacao_aceita', 'edicao_direta') NOT NULL,
+            contestacao_id int(11) NULL,
+            usuario_id int(11) NOT NULL,
+            data_alteracao datetime NOT NULL,
+            PRIMARY KEY (id),
+            KEY lancamento_id (lancamento_id),
+            KEY contestacao_id (contestacao_id),
+            KEY usuario_id (usuario_id),
+            KEY data_alteracao (data_alteracao)
         ) $charset_collate;";
         
         // Tabela de relatórios
@@ -380,6 +399,21 @@ class GC_Database {
         if ($estado_column && (strpos($estado_column->Type, 'votacao_aberta') === false || strpos($estado_column->Type, 'expirada') === false)) {
             $wpdb->query("ALTER TABLE $table_name MODIFY estado enum('pendente', 'respondida', 'aceita', 'rejeitada', 'em_disputa', 'votacao_aberta', 'disputa_finalizada', 'expirada') DEFAULT 'pendente'");
             $alteracoes_executadas[] = 'estado_enum_atualizado_v2';
+        }
+        
+        // Atualizar enum de tipos de contestação - v1.1.1
+        $columns = $wpdb->get_results("DESCRIBE $table_name");
+        $tipo_column = null;
+        foreach ($columns as $column) {
+            if ($column->Field === 'tipo') {
+                $tipo_column = $column;
+                break;
+            }
+        }
+        
+        if ($tipo_column && (strpos($tipo_column->Type, 'valor_incorreto_receita') === false || strpos($tipo_column->Type, 'despesa_desnecessaria') === false)) {
+            $wpdb->query("ALTER TABLE $table_name MODIFY tipo enum('doacao_nao_contabilizada', 'valor_incorreto_receita', 'data_incorreta_receita', 'doacao_inexistente', 'doador_incorreto', 'despesa_nao_verificada', 'valor_incorreto_despesa', 'finalidade_questionavel', 'documentacao_insuficiente', 'despesa_desnecessaria') NOT NULL");
+            $alteracoes_executadas[] = 'tipo_contestacao_enum_expandido';
         }
         
         return $alteracoes_executadas;

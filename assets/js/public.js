@@ -1,5 +1,24 @@
 /* Gestão Coletiva - Public JavaScript */
 
+// Função para converter estados em texto amigável
+function gc_estado_para_texto_js(estado) {
+    var mapeamento = {
+        'previsto': 'Previsto',
+        'efetivado': 'Efetivado',
+        'cancelado': 'Cancelado',
+        'expirado': 'Expirado',
+        'em_contestacao': 'Em Contestação',
+        'contestado': 'Contestado',
+        'confirmado': 'Confirmado',
+        'aceito': 'Aceito',
+        'em_disputa': 'Em Disputa',
+        'retificado_comunidade': 'Confirmado pela Comunidade',
+        'contestado_comunidade': 'Contestado pela Comunidade'
+    };
+    
+    return mapeamento[estado] || estado.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 jQuery(document).ready(function($) {
     
     // Handlers globais para botões do painel
@@ -299,7 +318,7 @@ jQuery(document).ready(function($) {
             <div class="gc-lancamento-header" style="text-align: center; padding: 20px; border-bottom: 2px solid #0073aa;">
                 <h2 style="margin: 0; color: #0073aa;">🏷️ Lançamento #${lancamento.numero_unico}</h2>
                 <span class="gc-badge gc-estado-${lancamento.estado}" style="display: inline-block; margin-top: 10px; padding: 5px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
-                    ${lancamento.estado.replace('_', ' ')}
+                    ${gc_estado_para_texto_js(lancamento.estado)}
                 </span>
             </div>
             
@@ -375,14 +394,53 @@ jQuery(document).ready(function($) {
     }
     
     function gc_abrir_modal_contestacao(lancamentoId) {
+        // Primeiro, buscar informações do lançamento para determinar o tipo
+        var ajaxUrl = typeof gc_ajax !== 'undefined' ? gc_ajax.ajax_url : '/wp-admin/admin-ajax.php';
+        var nonce = typeof gc_ajax !== 'undefined' ? gc_ajax.nonce : '';
+        
+        $.ajax({
+            url: ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'gc_obter_tipo_lancamento',
+                id: lancamentoId,
+                nonce: nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    gc_criar_modal_contestacao_tipado(lancamentoId, response.data.tipo);
+                } else {
+                    alert('Erro ao obter informações do lançamento: ' + response.data);
+                }
+            },
+            error: function() {
+                alert('Erro de conexão. Tente novamente.');
+            }
+        });
+    }
+    
+    function gc_criar_modal_contestacao_tipado(lancamentoId, tipoLancamento) {
         var html = '<div class="gc-modal-contestacao">';
         html += '<h3>Abrir Contestação</h3>';
         html += '<form id="form-contestacao">';
-        html += '<p><label>Tipo de Contestação:</label>';
+        html += '<p><label>Motivo da Contestação:</label>';
         html += '<select name="tipo" required>';
-        html += '<option value="">Selecione...</option>';
-        html += '<option value="doacao_nao_contabilizada">Uma doação não foi contabilizada</option>';
-        html += '<option value="despesa_nao_verificada">Uma despesa não pôde ser verificada</option>';
+        html += '<option value="">Selecione o motivo...</option>';
+        
+        if (tipoLancamento === 'receita') {
+            html += '<option value="doacao_nao_contabilizada">Doação não foi contabilizada</option>';
+            html += '<option value="valor_incorreto_receita">Valor registrado está incorreto</option>';
+            html += '<option value="data_incorreta_receita">Data registrada está incorreta</option>';
+            html += '<option value="doacao_inexistente">Doação registrada não existe</option>';
+            html += '<option value="doador_incorreto">Informações do doador incorretas</option>';
+        } else if (tipoLancamento === 'despesa') {
+            html += '<option value="despesa_nao_verificada">Despesa não pôde ser verificada</option>';
+            html += '<option value="valor_incorreto_despesa">Valor registrado está incorreto</option>';
+            html += '<option value="finalidade_questionavel">Finalidade da despesa é questionável</option>';
+            html += '<option value="documentacao_insuficiente">Documentação insuficiente</option>';
+            html += '<option value="despesa_desnecessaria">Despesa desnecessária ou inadequada</option>';
+        }
+        
         html += '</select></p>';
         html += '<p><label>Descrição:</label>';
         html += '<textarea name="descricao" rows="5" style="width: 100%;" required placeholder="Descreva detalhadamente a contestação..."></textarea></p>';
@@ -832,7 +890,7 @@ jQuery(document).ready(function($) {
         html += '<p><label>Descrição detalhada:<br>';
         html += '<textarea name="descricao_detalhada" rows="4" style="width: 100%;"></textarea></label></p>';
         html += '<p><label>Valor (R$):<br>';
-        html += '<input type="number" name="valor" min="0.01" step="0.01" required class="gc-input-valor" style="width: 100%; font-size: 16px; padding: 10px;"></label></p>';
+        html += '<input type="number" name="valor" min="0.01" step="0.01" required class="regular-text" style="width: 200px;"></label></p>';
         
         if (tipo === 'receita') {
             // Buscar informações PIX via AJAX
@@ -904,4 +962,42 @@ jQuery(document).ready(function($) {
         
         gc_abrir_modal(html);
     }
+    
+    // Cancelar recorrência
+    $(document).on('click', '.gc-cancelar-recorrencia', function() {
+        var button = $(this);
+        var lancamentoId = button.data('id');
+        
+        if (!confirm('Tem certeza que deseja cancelar esta recorrência? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+        
+        button.prop('disabled', true).text('Cancelando...');
+        
+        var ajaxUrl = typeof gc_ajax !== 'undefined' ? gc_ajax.ajax_url : '/wp-admin/admin-ajax.php';
+        var nonce = typeof gc_ajax !== 'undefined' ? gc_ajax.nonce : '';
+        
+        $.ajax({
+            url: ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'gc_cancelar_recorrencia',
+                id: lancamentoId,
+                nonce: nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data);
+                    location.reload();
+                } else {
+                    alert('Erro: ' + response.data);
+                    button.prop('disabled', false).text('Cancelar Recorrência');
+                }
+            },
+            error: function() {
+                alert('Erro de conexão. Tente novamente.');
+                button.prop('disabled', false).text('Cancelar Recorrência');
+            }
+        });
+    });
 });

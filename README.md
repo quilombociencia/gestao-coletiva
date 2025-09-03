@@ -13,7 +13,7 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 
 ## Desenvolvimento e Trilha de Criação
 
-Este projeto é desenvolvido através do **Laboratório de Projetos do Quilombo Ciência** como uma trilha de criação. A trilha completa está disponível na escola de projetos:
+Este projeto é desenvolvido como uma trilha de criação da **Escola de Projetos do Quilombo Ciência**. A trilha completa está disponível na escola de projetos:
 
 📚 **Trilha Gestão Coletiva**: https://quilombociencia.org/escola/course/view.php?id=18
 

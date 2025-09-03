@@ -1,13 +1,23 @@
 # Gestão Coletiva - Plugin WordPress
 
+> **⚠️ Versão Beta** - Este plugin está em fase de testes. Recomenda-se cautela em ambientes de produção.
+
 ## Sobre o Plugin
 
-O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coletiva de recursos de projetos. Permite arrecadação, gestão e prestação de contas em tempo real, com livro-caixa público e sistema completo de contestações. 
+O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coletiva de recursos de projetos. Permite arrecadação, gestão e prestação de contas em tempo real, com livro-caixa público e sistema completo de contestações.
 
 **Autor**: Quilombo Ciência (https://github.com/quilombociencia)  
 **Repositório**: https://github.com/quilombociencia/gestao-coletiva  
 **Licença**: GPL/GNU 3.0  
-**Versão**: 1.1.1
+**Versão**: 1.2.0-beta
+
+## Desenvolvimento e Trilha de Criação
+
+Este projeto é desenvolvido através do **Laboratório de Projetos do Quilombo Ciência** como uma trilha de criação. A trilha completa está disponível na escola de projetos:
+
+📚 **Trilha Gestão Coletiva**: https://quilombociencia.org/escola/course/view.php?id=18
+
+A trilha de criação ensina desde conceitos básicos de desenvolvimento WordPress até implementação de sistemas complexos de gestão financeira transparente.
 
 ## Funcionalidades Principais
 
@@ -36,6 +46,26 @@ O **Gestão Coletiva** é um plugin WordPress para gestão transparente e coleti
 - **Instruções automáticas** de PIX após registro
 - **Verificação manual** pela administração
 - **Certificados digitais** para doações efetivadas
+
+## 🎉 Novidades da v1.2.0-beta
+
+### 🎭 Sistema de Doações Anônimas
+- **Configuração de limites**: Valor máximo para doações anônimas
+- **Controle automático**: Verificação de limites por valor e mensal
+- **Interface inteligente**: Avisos automáticos sobre anonimato
+- **Transparência seletiva**: Despesas sempre identificadas, doações configuráveis
+
+### 🔧 Melhorias no Sistema de Contestações
+- **Filtros por lançamento**: Visualizar contestações específicas
+- **Limite de contestações**: Configurar máximo por lançamento
+- **Sistema de correções**: Permitir correções nas respostas
+- **Contadores visuais**: Indicação de contestações pendentes
+
+### 🎨 Interface Aprimorada
+- **Estados mais claros**: Textos amigáveis para todos os estados
+- **Navegação melhorada**: Links contextuais entre seções
+- **Controles refinados**: Permissões mais precisas para ações
+- **Experiência otimizada**: Feedback visual aprimorado
 
 ## 🎉 Novidades da v1.1.1
 
